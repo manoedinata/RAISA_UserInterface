@@ -1166,6 +1166,8 @@ const visitorReturnPickupBtn = document.getElementById("visitor-return-pickup-bt
 const visitorArrivalHomeBtn = document.getElementById("visitor-arrival-home-btn");
 const visitorNavigationHomeBtn = document.getElementById("visitor-navigation-home-btn");
 const interactionBtn = document.querySelector('.nav-btn[data-page="lain"]');
+const visitorGreetingAudio = new Audio("assets/sayaraisa.mp3");
+visitorGreetingAudio.preload = "auto";
 
 const VISITOR_INITIAL_MESSAGE =
   "Halo! Saya Robot asisten RAISA siap membantu. Apakah Anda ingin saya antar ke lokasi PT Optima Group?";
@@ -1197,9 +1199,15 @@ function openVisitorGreeting() {
 
   resetVisitorGreeting();
   visitorGreetingOverlay.classList.remove("hidden");
+  visitorGreetingAudio.currentTime = 0;
+  visitorGreetingAudio.play().catch((error) => {
+    console.warn("⚠️ Audio sapaan tidak dapat diputar:", error);
+  });
 }
 
 function closeVisitorGreeting() {
+  visitorGreetingAudio.pause();
+  visitorGreetingAudio.currentTime = 0;
   visitorGreetingOverlay.classList.add("hidden");
   resetVisitorGreeting();
   showPage("konten");

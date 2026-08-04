@@ -9,7 +9,7 @@ Antarmuka Electron untuk Robot RAISA yang terhubung ke ROS melalui rosbridge.
 
 ## Menu Sapa Pengunjung
 
-Menu layar penuh dapat dibuka dengan 10 kali tap tombol **INTERAKSI** dalam 3 detik atau ketika topic ROS `/vision/face_detected` (`std_msgs/Int8`) bernilai `1`. Nilai `0` menutup menu dan mengembalikan UI ke halaman **KONTEN**.
+Menu layar penuh dapat dibuka dengan 10 kali tap tombol **INTERAKSI** dalam 3 detik atau ketika topic ROS `/vision/face_detected` (`std_msgs/Int8`) bernilai `1`. Saat menu dibuka, audio `assets/sayaraisa.mp3` diputar dari awal. Nilai `0` menghentikan audio, menutup menu, dan mengembalikan UI ke halaman **KONTEN**.
 
 Alur navigasi:
 
