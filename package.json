@@ -1,20 +1,51 @@
 {
-  "name": "electron_ui",
-  "version": "1.0.0",
+  "name": "raisa-user-interface",
+  "version": "2.0.0",
+  "private": true,
+  "description": "RAISA humanoid robot kiosk interface",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "dev": "vite --host 0.0.0.0",
+    "dev:backend": "node backend/server.js --api-only",
+    "dev:browser": "concurrently -k -n api,vite -c yellow,cyan \"npm:dev:backend\" \"npm:dev\"",
+    "dev:electron": "concurrently -k -s first -n vite,electron -c cyan,yellow \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "vite build && npm run copy:static",
+    "copy:static": "node scripts/copy-static.js",
+    "start": "npm run build && electron .",
     "backend": "node backend/server.js",
-    "browser": "node backend/server.js"
+    "browser": "npm run build && node backend/server.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "electron",
+    "vue",
+    "robot",
+    "kiosk"
+  ],
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "node-wifi": "^2.0.16"
+    "lucide-vue-next": "^0.468.0",
+    "node-wifi": "^2.0.16",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
-    "electron": "^38.4.0"
+    "@eslint/js": "^9.17.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.6",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^38.4.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-vue": "^9.32.0",
+    "globals": "^15.14.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8",
+    "wait-on": "^8.0.1"
   }
 }

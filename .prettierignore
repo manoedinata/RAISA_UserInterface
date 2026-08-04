@@ -1,0 +1,17 @@
+node_modules
+dist
+assets
+*.min.js
+*.min.css
+package-lock.json
+dist/
+app.js
+bridge.js
+buffer.js
+config.js
+config/food_specs.json
+platform.js
+style.css
+tangan.html
+voice.html
+voice2.html

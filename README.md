@@ -1,72 +1,74 @@
 # RAISA User Interface
 
-## Runtime Architecture
+Vue 3 kiosk interface for the RAISA humanoid robot. The same Vite build runs in a browser with a local companion backend or in Electron with a restricted preload bridge.
 
-The UI has one browser-safe frontend and two runtime options:
-
-- **Browser**: `backend/server.js` serves the static files and provides privileged Linux operations through `/api/*`.
-- **Electron**: `main.js` launches the UI and exposes the same operations through a restricted preload bridge.
-- **Robot endpoint**: `config.js` derives ROS bridge, camera, and waypoint URLs from one robot host.
-
-Frontend code must remain free of direct `require`, filesystem, child-process, OS, and Wi-Fi imports. Runtime-specific operations belong in `platform.js`, the Electron preload bridge, or the companion backend.
-
-## Run In A Browser
-
-From this directory:
+## Setup
 
 ```bash
-npm run browser
+npm install
 ```
 
-Open `http://localhost:9999`. The backend binds to `0.0.0.0:9999` by default, so another machine can access it using the UI host's IP address.
+Development commands:
 
-Set a different robot host with a query parameter:
+- `npm run dev:browser`: Vite on port `5173` plus the API-only backend on port `9999`.
+- `npm run dev:electron`: Vite plus Electron with hot reload.
+- `npm run dev`: frontend only; privileged APIs are proxied to an independently running backend.
+
+Production commands:
+
+- `npm run build`: generate `dist/` and copy static robot media/configuration.
+- `npm run browser`: build, then serve `dist/` and `/api/*` at `http://localhost:9999`.
+- `npm start`: build, then launch the fullscreen Electron kiosk.
+
+Quality commands:
+
+- `npm run lint`
+- `npm test`
+- `npm run format:check`
+
+Do not open `index.html` directly with `file://` for browser validation. Use the HTTP development or production commands.
+
+## Architecture
+
+- `src/App.vue`: application workflow and overlay coordination.
+- `src/views/`: Home, Interact, and About screens.
+- `src/components/`: reusable chrome, cards, media viewer, modals, and virtual keyboard.
+- `src/composables/`: robot, navigation, media, and Linux system-control state.
+- `src/services/robotConfig.js`: robot host and derived ROS/camera/waypoint endpoints.
+- `src/services/ros.js`: reconnecting ROS bridge, publishers, and managed subscriptions.
+- `src/services/platform.js`: browser API/Electron IPC adapter.
+- `src/data/`: content, interaction, music, and ROS topic declarations.
+- `electron/`: Electron window, fixed IPC handlers, and privileged system operations.
+- `backend/server.js`: browser companion API and production `dist/` server.
+- `preload.js`: allowlisted Electron IPC bridge.
+- `scripts/copy-static.js`: copies runtime static files after Vite builds.
+
+The legacy root `app.js`, `style.css`, `config.js`, `platform.js`, and `bridge.js` remain temporarily for reference and standalone-page compatibility. The main kiosk entry no longer loads them.
+
+## Robot Configuration
+
+The default robot host is `10.209.100.3`. Override it in Settings or with a query parameter:
 
 `http://localhost:9999/?robot=http://10.209.100.3`
 
-The selected host is persisted in browser local storage. The derived endpoints are:
+The selected host is persisted in local storage. All robot endpoints derive from it:
 
 - ROS bridge: `ws://robot-host:9090`
 - Camera: `http://robot-host:8080/stream?topic=/vision/image_display`
 - Waypoints: `http://robot-host/reeman/position`
 
-The robot must expose rosbridge on port `9090`, camera streaming on port `8080`, and the waypoint endpoint with CORS enabled for browser access.
-
-## Run In Electron
-
-```bash
-npm start
-```
-
-Electron retains fullscreen behavior, embedded webviews, media permission handling, and privileged operations through `preload.js` and `main.js`.
+Preserved ROS contracts include `/ui/goto_docking`, `/ui/goto_waypoint`, `/ui/mute_audio`, `/communication/robot_battery_status`, `/communication/docking_status`, and `/communication/nav_status`.
 
 ## Backend Configuration
 
 Environment variables:
 
-- `HOST`: backend bind address, default `0.0.0.0`.
+- `HOST`: bind address, default `0.0.0.0`.
 - `PORT`: backend port, default `9999`.
-- `RAISA_IP_FILE`: controller-IP persistence file, default `/home/raisa/ip_controller.txt`.
+- `RAISA_IP_FILE`: controller host persistence file, default `/home/raisa/ip_controller.txt`.
 
-Linux prerequisites for full parity:
+Linux features require `pactl`, NetworkManager/node-wifi prerequisites, the user service `run_ros_riman.service`, and optionally `google-chrome`. The API exposes fixed operations only and validates host, SSID, URL, and volume inputs. Keep it on a trusted network.
 
-- `pactl` for system volume control.
-- `node-wifi` dependencies and NetworkManager/wireless tools for Wi-Fi scanning and connection.
-- `systemctl --user restart run_ros_riman.service` for the developer ROS reconnect action.
-- `google-chrome` for the external voice-chat launch action.
+## Runtime Limits
 
-The backend uses fixed command routes and validates URL, host, SSID, and volume inputs. It is intended for a trusted local network and should not be exposed directly to an untrusted network.
-
-## Browser Limitations
-
-Browser microphone permissions are controlled by the browser and the embedded voice-chat origin. Cross-origin sites may refuse iframe embedding through `X-Frame-Options` or CSP; Electron webviews have fewer restrictions because of the existing Electron configuration. Direct `file://` opening is unsupported; use `npm run browser` so ES modules, fetch, and backend APIs work correctly.
-
-## Project Layout
-
-- `index.html`, `style.css`, `app.js`: frontend UI.
-- `config.js`: robot endpoint configuration.
-- `platform.js`: browser/Electron runtime adapter.
-- `bridge.js`: ROS bridge connection and topic helpers.
-- `preload.js`, `main.js`: Electron runtime boundary.
-- `backend/server.js`: browser companion backend and static server.
-- `assets/`, `config/`: media and food data.
+Browser microphone behavior depends on browser and embedded-origin permissions. Cross-origin sites can refuse iframe embedding through CSP or `X-Frame-Options`. Robot, camera, waypoint, Wi-Fi, microphone, docking, and system-volume behavior requires the corresponding hardware and services for end-to-end verification.

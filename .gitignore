@@ -1,4 +1,5 @@
 assets/
+dist/
 node_modules/
 
 *.mp4

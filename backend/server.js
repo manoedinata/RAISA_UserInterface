@@ -8,15 +8,16 @@ let wifi;
 try {
     wifi = require("node-wifi");
     wifi.init({ iface: null });
-} catch (error) {
+} catch {
     console.warn("node-wifi is unavailable; Wi-Fi API calls will report an error.");
 }
 
 const ROOT = path.resolve(__dirname, "..");
+const STATIC_ROOT = path.join(ROOT, "dist");
+const API_ONLY = process.argv.includes("--api-only");
 const PORT = Number(process.env.PORT || 9999);
 const HOST = process.env.HOST || "0.0.0.0";
 const IP_FILE = process.env.RAISA_IP_FILE || "/home/raisa/ip_controller.txt";
-const MUSIC_FILE = path.join(ROOT, "music_last.txt");
 const MIME_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -46,8 +47,11 @@ function readBody(req) {
             if (data.length > 1024 * 1024) reject(new Error("Request body too large"));
         });
         req.on("end", () => {
-            try { resolve(data ? JSON.parse(data) : {}); }
-            catch { reject(new Error("Invalid JSON")); }
+            try {
+                resolve(data ? JSON.parse(data) : {});
+            } catch {
+                reject(new Error("Invalid JSON"));
+            }
         });
         req.on("error", reject);
     });
@@ -68,21 +72,26 @@ function requireWifi() {
 }
 
 function callbackRequest(operation) {
-    return new Promise((resolve, reject) => operation((error, value) => error ? reject(error) : resolve(value)));
+    return new Promise((resolve, reject) =>
+        operation((error, value) => (error ? reject(error) : resolve(value))),
+    );
 }
 
 async function api(req, res, pathname) {
     if (pathname === "/api/ip" && req.method === "POST") {
         const body = await readBody(req);
         const ip = String(body.ip || "").trim();
-        if (!ip || !/^[a-zA-Z0-9.:-]+$/.test(ip)) return sendJson(res, 400, { success: false, error: "Invalid IP or host" });
+        if (!ip || !/^[a-zA-Z0-9.:-]+$/.test(ip))
+            return sendJson(res, 400, { success: false, error: "Invalid IP or host" });
         fs.mkdirSync(path.dirname(IP_FILE), { recursive: true });
         fs.writeFileSync(IP_FILE, ip, "utf8");
         return sendJson(res, 200, { success: true, value: ip });
     }
 
     if (pathname === "/api/volume" && req.method === "GET") {
-        const output = await run("pactl", ["get-sink-volume", "@DEFAULT_SINK@"]).catch((error) => { throw error; });
+        const output = await run("pactl", ["get-sink-volume", "@DEFAULT_SINK@"]).catch((error) => {
+            throw error;
+        });
         const match = output.match(/(\d+)%/);
         if (!match) throw new Error("Unable to read system volume");
         return sendJson(res, 200, { success: true, value: Number(match[1]) });
@@ -91,7 +100,8 @@ async function api(req, res, pathname) {
     if (pathname === "/api/volume" && req.method === "POST") {
         const body = await readBody(req);
         const percent = Math.max(0, Math.min(100, Number(body.percent)));
-        if (!Number.isFinite(percent)) return sendJson(res, 400, { success: false, error: "Invalid volume" });
+        if (!Number.isFinite(percent))
+            return sendJson(res, 400, { success: false, error: "Invalid volume" });
         await run("pactl", ["set-sink-volume", "@DEFAULT_SINK@", `${percent}%`]);
         return sendJson(res, 200, { success: true, value: percent });
     }
@@ -102,17 +112,28 @@ async function api(req, res, pathname) {
     }
 
     if (pathname === "/api/wifi/connections" && req.method === "GET") {
-        const connections = await callbackRequest((callback) => requireWifi().getCurrentConnections(callback));
+        const connections = await callbackRequest((callback) =>
+            requireWifi().getCurrentConnections(callback),
+        );
         const interfaces = os.networkInterfaces();
-        const ip = Object.values(interfaces).flat().find((entry) => entry.family === "IPv4" && !entry.internal)?.address || null;
+        const ip =
+            Object.values(interfaces)
+                .flat()
+                .find((entry) => entry.family === "IPv4" && !entry.internal)?.address || null;
         return sendJson(res, 200, { success: true, connections: connections || [], ip });
     }
 
     if (pathname === "/api/wifi/connect" && req.method === "POST") {
         const body = await readBody(req);
         const ssid = String(body.ssid || "").trim();
-        if (!ssid || ssid.length > 128) return sendJson(res, 400, { success: false, error: "Invalid SSID" });
-        await callbackRequest((callback) => requireWifi().connect({ ssid, password: body.password ? String(body.password) : null }, callback));
+        if (!ssid || ssid.length > 128)
+            return sendJson(res, 400, { success: false, error: "Invalid SSID" });
+        await callbackRequest((callback) =>
+            requireWifi().connect(
+                { ssid, password: body.password ? String(body.password) : null },
+                callback,
+            ),
+        );
         return sendJson(res, 200, { success: true });
     }
 
@@ -124,9 +145,22 @@ async function api(req, res, pathname) {
     if (pathname === "/api/chrome/launch" && req.method === "POST") {
         const body = await readBody(req);
         const url = String(body.url || "");
-        if (!/^https?:\/\//i.test(url)) return sendJson(res, 400, { success: false, error: "Only HTTP(S) URLs are allowed" });
-        const args = ["--kiosk", "--password-store=basic", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required", "--disable-pinch", "--overscroll-history-navigation=0", "--disk-cache-dir=/dev/null", url];
-        const child = require("child_process").spawn("google-chrome", args, { detached: true, stdio: "ignore" });
+        if (!/^https?:\/\//i.test(url))
+            return sendJson(res, 400, { success: false, error: "Only HTTP(S) URLs are allowed" });
+        const args = [
+            "--kiosk",
+            "--password-store=basic",
+            "--use-fake-ui-for-media-stream",
+            "--autoplay-policy=no-user-gesture-required",
+            "--disable-pinch",
+            "--overscroll-history-navigation=0",
+            "--disk-cache-dir=/dev/null",
+            url,
+        ];
+        const child = require("child_process").spawn("google-chrome", args, {
+            detached: true,
+            stdio: "ignore",
+        });
         child.unref();
         return sendJson(res, 200, { success: true });
     }
@@ -140,16 +174,15 @@ async function api(req, res, pathname) {
 }
 
 function serveStatic(req, res, pathname) {
+    if (API_ONLY) return sendJson(res, 404, { success: false, error: "API-only mode" });
     const requested = pathname === "/" ? "/index.html" : pathname;
-    const blocked = ["/backend/", "/node_modules/", "/.git/", "/main.js", "/preload.js", "/buffer.js", "/package.json", "/package-lock.json", "/music_last.txt"];
-    if (blocked.some((entry) => requested === entry || requested.startsWith(entry))) {
-        return sendJson(res, 404, { success: false, error: "Not found" });
-    }
-    const filePath = path.resolve(ROOT, `.${requested}`);
-    if (!filePath.startsWith(`${ROOT}${path.sep}`)) return sendJson(res, 403, { success: false, error: "Forbidden" });
+    const filePath = path.resolve(STATIC_ROOT, `.${requested}`);
+    if (!filePath.startsWith(`${STATIC_ROOT}${path.sep}`))
+        return sendJson(res, 403, { success: false, error: "Forbidden" });
     fs.stat(filePath, (error, stats) => {
         if (error || !stats.isFile()) return sendJson(res, 404, { success: false, error: "Not found" });
-        const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+        const contentType =
+            MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
         const range = req.headers.range;
         if (range) {
             const match = range.match(/bytes=(\d*)-(\d*)/);
@@ -168,7 +201,12 @@ function serveStatic(req, res, pathname) {
             });
             return fs.createReadStream(filePath, { start, end }).pipe(res);
         }
-        res.writeHead(200, { "Content-Type": contentType, "Content-Length": stats.size, "Accept-Ranges": "bytes", "Access-Control-Allow-Origin": "*" });
+        res.writeHead(200, {
+            "Content-Type": contentType,
+            "Content-Length": stats.size,
+            "Accept-Ranges": "bytes",
+            "Access-Control-Allow-Origin": "*",
+        });
         fs.createReadStream(filePath).pipe(res);
     });
 }
@@ -191,4 +229,6 @@ const server = http.createServer(async (req, res) => {
     }
 });
 
-server.listen(PORT, HOST, () => console.log(`RAISA browser backend listening on http://${HOST}:${PORT}`));
+server.listen(PORT, HOST, () =>
+    console.log(`RAISA browser backend listening on http://${HOST}:${PORT}`),
+);
