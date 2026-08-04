@@ -7,7 +7,8 @@ const camera_path = "http://localhost:8080/stream?topic=/vision/image_display";
 const ASSETS_PATH = "assets/";
 // const ROS_IP = "10.7.101.238"; // ganti sesuai kebutuhan
 // const ROS_IP = "10.42.0.166"; // ganti sesuai kebutuhan
-const ROS_IP = "10.209.100.3"; // ganti sesuai kebutuhan
+// const ROS_IP = "10.209.100.3"; // ganti sesuai kebutuhan
+const ROS_IP = "192.168.0.193"; // ganti sesuai kebutuhan
 
 import { safeSubscribe, safeTopic } from "./bridge.js";
 const { shell } = require("electron");
@@ -246,7 +247,7 @@ function openViewer(type, src, cardData = null) {
       el.playsInline = true;
       Object.assign(el.style, { width: "100%", height: "100%" });
       el.oncanplay = () => {
-        el.play().catch(() => {});
+        el.play().catch(() => { });
         el.muted = false;
       };
       break;
@@ -283,14 +284,14 @@ function createFoodDetailView(data) {
   const ingredients = Array.isArray(data.ingredients)
     ? data.ingredients
     : data.ingredients
-    ? data.ingredients.split(",").map((item) => item.trim())
-    : [];
+      ? data.ingredients.split(",").map((item) => item.trim())
+      : [];
 
   const wakil = Array.isArray(data.wakil)
     ? data.wakil
     : data.wakil
-    ? data.wakil.split(",").map((item) => item.trim())
-    : [];
+      ? data.wakil.split(",").map((item) => item.trim())
+      : [];
 
   container.innerHTML = `
     <div class="food-detail-grid">
@@ -316,8 +317,8 @@ function createFoodDetailView(data) {
           <h3>Pejabat Kementerian</h3>
           <ul class="ingredients-list">
             ${ingredients
-              .map((ingredient) => `<li>${ingredient}</li>`)
-              .join("")}
+      .map((ingredient) => `<li>${ingredient}</li>`)
+      .join("")}
           </ul>
         </div>
       </div>
@@ -366,7 +367,7 @@ document.addEventListener("click", (e) => {
 
 function closeViewer() {
   if (document.fullscreenElement) {
-    document.exitFullscreen().catch(() => {});
+    document.exitFullscreen().catch(() => { });
   }
 
   const topic = safeTopic("/ui/mute_audio", "std_msgs/Int8");
@@ -456,7 +457,7 @@ function openPromoVideo(playlist, index = 0) {
   closeBtn.classList.add("visible");
   let hideTimeout = null;
 
-  video.play().catch(() => {});
+  video.play().catch(() => { });
   video.muted = false;
 
   video.onended = () => {
@@ -1304,8 +1305,8 @@ function promptWifiPassword(ssid, cb) {
       ">✕</button>
       <h3 style="margin: 0 0 8px 0; font-size: 30px; color: var(--yellow); text-shadow: 0 0 10px rgba(251, 226, 0, 0.45);">Masukkan kata sandi</h3>
       <div style="font-weight:700;margin-bottom:18px;color:var(--cyan);font-size:18px;word-break:break-word">${escapeHtml(
-        ssid
-      )}</div>
+    ssid
+  )}</div>
       <input
         type="password"
         id="wifi-pass-input"
@@ -1369,13 +1370,13 @@ function escapeHtml(s) {
   return String(s).replace(
     /[&<>"']/g,
     (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      }[c])
+    ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c])
   );
 }
 
@@ -1477,7 +1478,7 @@ function playCurrentHandVideo() {
   // aktifkan suara setelah autoplay
   video.oncanplay = () => {
     video.muted = false;
-    video.play().catch(() => {});
+    video.play().catch(() => { });
   };
 
   // video selesai → berikutnya
