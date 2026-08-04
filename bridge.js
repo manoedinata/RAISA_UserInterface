@@ -1,20 +1,20 @@
 // bridge.js
+import { getRosUrl } from "./config.js";
 export let ros = null;
 
 let connected = false;
 let reconnectTimer = null;
-let wsUrl =
-  `ws://${(typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost'}:9090`;
+let wsUrl = getRosUrl();
 
 // Simpan subscribe yg diminta user (pending sebelum connect)
 const pendingSubs = []; // {name, type, cb}
-const activeSubs  = []; // {name, type, cb, topic}
+const activeSubs = []; // {name, type, cb, topic}
 
 // === Public: ganti URL ws kalau perlu ===
 export function setRosUrl(url) {
   wsUrl = url;
   if (ros) {
-    try { ros.close(); } catch {}
+    try { ros.close(); } catch { }
   }
   connectROS(true);
 }
@@ -41,7 +41,7 @@ function connectROS(force = false) {
     // Re-subscribe semua active saat reconnect
     activeSubs.forEach((s, i) => {
       // kalau topic lama ada, putus dulu biar bersih
-      try { s.topic && s.topic.unsubscribe && s.topic.unsubscribe(); } catch {}
+      try { s.topic && s.topic.unsubscribe && s.topic.unsubscribe(); } catch { }
       const topic = new ROSLIB.Topic({ ros, name: s.name, messageType: s.type });
       topic.subscribe(s.cb);
       activeSubs[i].topic = topic;
@@ -110,7 +110,7 @@ export function safeUnsubscribe(name, cb) {
   for (let i = activeSubs.length - 1; i >= 0; i--) {
     const s = activeSubs[i];
     if (s.name === name && (!cb || cb === s.cb)) {
-      try { s.topic && s.topic.unsubscribe && s.topic.unsubscribe(); } catch {}
+      try { s.topic && s.topic.unsubscribe && s.topic.unsubscribe(); } catch { }
       activeSubs.splice(i, 1);
     }
   }

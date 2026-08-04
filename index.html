@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <title>Robot UI – Corporate Futuristic</title>
 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Allow External Content (iframe/webview) -->
   <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:" />
 
@@ -51,7 +52,8 @@
         </div>
       </div>
 
-      <div class="card konten" data-type="video" data-src="assets/Diktisaintek-Berdampak-Peta-Jalan-Menuju-Kampus-Berdampak.mp4">
+      <div class="card konten" data-type="video"
+        data-src="assets/Diktisaintek-Berdampak-Peta-Jalan-Menuju-Kampus-Berdampak.mp4">
         <img src="assets/Diktisaintek-Berdampak.png" />
         <div class="card-info">
           <h1>Diktisaintek Berdampak: Peta Jalan Menuju Kampus Berdampak</h1>
@@ -136,7 +138,7 @@
   <!-- PAGE: MAKANAN -->
   <main id="makanan" class="page">
     <div class="content" id="food-grid">
-             
+
 
 
       <div class="card makanan" data-type="food-detail">
@@ -159,7 +161,7 @@
         <img src="assets/icon_mentri/kemendagri.png" />
         <div class="overlay">Kemendagri.png</div>
       </div>
-<!-- 
+      <!--
               <div class="card makanan" data-type="food-detail">
           <img src="assets/food.jpeg" />
           <div class="overlay">Ayam Geprek</div>
@@ -255,8 +257,8 @@
 
       <!-- 5 Finger Demo -->
       <!-- <div class="lain-btn" id="tangan-btn"> -->
-        <!-- <img src="assets/hand.png" class="lain-icon" /> -->
-        <!-- <p>Demo Tangan</p> -->
+      <!-- <img src="assets/hand.png" class="lain-icon" /> -->
+      <!-- <p>Demo Tangan</p> -->
       <!-- </div> -->
 
       <!-- 5 Finger Demo -->
@@ -527,25 +529,29 @@
   <div id="vk-overlay" class="vk hidden">
     <div class="vk-container">
       <div class="vk-row">
-        <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button> <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+        <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button> <button
+          data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
         <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
         <button data-key="0">0</button>
         <button data-key="Backspace" class="wide">⌫</button>
       </div>
 
       <div class="vk-row">
-        <button data-key="q">Q</button><button data-key="w">W</button><button data-key="e">E</button> <button data-key="r">R</button><button data-key="t">T</button><button data-key="y">Y</button>
+        <button data-key="q">Q</button><button data-key="w">W</button><button data-key="e">E</button> <button
+          data-key="r">R</button><button data-key="t">T</button><button data-key="y">Y</button>
         <button data-key="u">U</button><button data-key="i">I</button><button data-key="o">O</button>
         <button data-key="p">P</button>
       </div>
 
       <div class="vk-row">
-        <button data-key="a">A</button><button data-key="s">S</button><button data-key="d">D</button> <button data-key="f">F</button><button data-key="g">G</button><button data-key="h">H</button>
+        <button data-key="a">A</button><button data-key="s">S</button><button data-key="d">D</button> <button
+          data-key="f">F</button><button data-key="g">G</button><button data-key="h">H</button>
         <button data-key="j">J</button><button data-key="k">K</button><button data-key="l">L</button>
       </div>
 
       <div class="vk-row">
-        <button data-key="z">Z</button><button data-key="x">X</button><button data-key="c">C</button> <button data-key="v">V</button><button data-key="b">B</button><button data-key="n">N</button>
+        <button data-key="z">Z</button><button data-key="x">X</button><button data-key="c">C</button> <button
+          data-key="v">V</button><button data-key="b">B</button><button data-key="n">N</button>
         <button data-key="m">M</button>
         <button data-key=".">.</button>
         <button data-key=":">:</button>
@@ -562,6 +568,8 @@
   </div>
 
   <script src="./roslib.min.js"></script>
+  <script type="module" src="./config.js"></script>
+  <script type="module" src="./platform.js"></script>
   <script type="module" src="bridge.js"></script>
   <script type="module" src="app.js"></script>
 </body>

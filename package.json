@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "backend": "node backend/server.js",
+    "browser": "node backend/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
+  "dependencies": {
+    "node-wifi": "^2.0.16"
+  },
   "devDependencies": {
     "electron": "^38.4.0"
   }

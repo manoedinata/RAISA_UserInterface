@@ -2,16 +2,11 @@
 // ✅ ROS WRAPPER SETUP
 // =============================================================================
 
-const { ipcRenderer } = require("electron");
-const camera_path = "http://localhost:8080/stream?topic=/vision/image_display";
+import { platform } from "./platform.js";
+import { getCameraUrl, getRobotHost, getRobotHttpUrl, getRosUrl, setRobotHost } from "./config.js";
 const ASSETS_PATH = "assets/";
-// const ROS_IP = "10.7.101.238"; // ganti sesuai kebutuhan
-// const ROS_IP = "10.42.0.166"; // ganti sesuai kebutuhan
-const ROS_IP = "10.209.100.3"; // ganti sesuai kebutuhan
 
-import { safeSubscribe, safeTopic } from "./bridge.js";
-const { shell } = require("electron");
-const os = require("os");
+import { safeSubscribe, safeTopic, setRosUrl } from "./bridge.js";
 
 // =============================================================================
 // 🧹 SOCKET CLEANUP
@@ -204,7 +199,7 @@ function openViewer(type, src, cardData = null) {
     case "web":
     case "voice":
     case "html":
-      el = document.createElement("webview");
+      el = document.createElement(platform.isElectron ? "webview" : "iframe");
       el.src = src;
       if (type === "voice") {
         //enable mic access and autoplay for voice page
@@ -228,6 +223,11 @@ function openViewer(type, src, cardData = null) {
       });
     `);
       });
+      if (!platform.isElectron) {
+        el.setAttribute("allow", "microphone; autoplay; clipboard-read; clipboard-write");
+        el.setAttribute("referrerpolicy", "no-referrer");
+        el.style.border = "0";
+      }
       break;
 
     case "pdf":
@@ -246,7 +246,7 @@ function openViewer(type, src, cardData = null) {
       el.playsInline = true;
       Object.assign(el.style, { width: "100%", height: "100%" });
       el.oncanplay = () => {
-        el.play().catch(() => {});
+        el.play().catch(() => { });
         el.muted = false;
       };
       break;
@@ -269,6 +269,7 @@ function openViewer(type, src, cardData = null) {
   }
 
   viewerContent.appendChild(el);
+  activeEmbeddedView = el;
   viewerOverlay.classList.remove("hidden");
 }
 
@@ -283,14 +284,14 @@ function createFoodDetailView(data) {
   const ingredients = Array.isArray(data.ingredients)
     ? data.ingredients
     : data.ingredients
-    ? data.ingredients.split(",").map((item) => item.trim())
-    : [];
+      ? data.ingredients.split(",").map((item) => item.trim())
+      : [];
 
   const wakil = Array.isArray(data.wakil)
     ? data.wakil
     : data.wakil
-    ? data.wakil.split(",").map((item) => item.trim())
-    : [];
+      ? data.wakil.split(",").map((item) => item.trim())
+      : [];
 
   container.innerHTML = `
     <div class="food-detail-grid">
@@ -316,8 +317,8 @@ function createFoodDetailView(data) {
           <h3>Pejabat Kementerian</h3>
           <ul class="ingredients-list">
             ${ingredients
-              .map((ingredient) => `<li>${ingredient}</li>`)
-              .join("")}
+      .map((ingredient) => `<li>${ingredient}</li>`)
+      .join("")}
           </ul>
         </div>
       </div>
@@ -366,7 +367,7 @@ document.addEventListener("click", (e) => {
 
 function closeViewer() {
   if (document.fullscreenElement) {
-    document.exitFullscreen().catch(() => {});
+    document.exitFullscreen().catch(() => { });
   }
 
   const topic = safeTopic("/ui/mute_audio", "std_msgs/Int8");
@@ -409,7 +410,7 @@ document.getElementById("camera-btn").addEventListener("click", () => {
     alert("ROS belum terkoneksi ⚠️");
     return;
   }
-  const url = camera_path;
+  const url = getCameraUrl();
   openViewer("mjpeg", url);
 });
 
@@ -456,7 +457,7 @@ function openPromoVideo(playlist, index = 0) {
   closeBtn.classList.add("visible");
   let hideTimeout = null;
 
-  video.play().catch(() => {});
+  video.play().catch(() => { });
   video.muted = false;
 
   video.onended = () => {
@@ -614,31 +615,6 @@ function updateBatteryUI(percent) {
 // 🎵 BACKGROUND MUSIC PLAYER
 // =============================================================================
 
-const fs = require("fs");
-const path = require("path");
-
-// Lokasi buffer file
-const bufferPath = path.join(__dirname, "music_last.txt");
-
-// ==== FUNGSI BUFFER ====
-function ensureFile() {
-  if (!fs.existsSync(bufferPath)) {
-    fs.writeFileSync(bufferPath, "");
-  }
-}
-
-function saveLastMusicPath(filePath) {
-  ensureFile();
-  fs.writeFileSync(bufferPath, filePath.trim());
-  console.log("💾 Last music saved:", filePath);
-}
-
-function getLastMusicPath() {
-  ensureFile();
-  const data = fs.readFileSync(bufferPath, "utf-8").trim();
-  return data.length > 0 ? data : null;
-}
-
 // ==== DAFTAR MUSIK ====
 const MUSIC_LIST = [
   //  src/electron_ui/assets/music/music-rek-ayo-rek.mp3
@@ -698,7 +674,7 @@ musicClose.addEventListener("click", () => {
 });
 
 // ==== RENDER LIST LAGU ====
-function renderMusicList() {
+async function renderMusicList() {
   musicList.innerHTML = "";
   MUSIC_LIST.forEach((path) => {
     const name = path
@@ -714,7 +690,7 @@ function renderMusicList() {
   });
 
   // tandai lagu terakhir dari buffer
-  const last = getLastMusicPath();
+  const last = await platform.getLastMusic();
   if (last) {
     const lastLi = [...musicList.children].find(
       (li) =>
@@ -745,20 +721,14 @@ function playMusic(filePath, li) {
   if (li) li.classList.add("active");
 
   // simpan ke file buffer
-  saveLastMusicPath(filePath);
+  platform.saveLastMusic(filePath).catch((error) => console.warn("Music state not saved:", error));
   console.log(`🎧 Playing ${filePath}`);
 }
 
 // ==== AUTOPLAY SAAT UI DIBUKA ====
-window.addEventListener("DOMContentLoaded", () => {
-  const last = getLastMusicPath();
-  if (
-    last &&
-    fs.existsSync(path.join(__dirname, last)) &&
-    MUSIC_LIST.includes(last)
-  ) {
-    playMusic(last, null);
-  }
+window.addEventListener("DOMContentLoaded", async () => {
+  const last = await platform.getLastMusic();
+  if (last && MUSIC_LIST.includes(last)) playMusic(last, null);
 });
 
 // =============================================================================
@@ -794,11 +764,9 @@ connectSubmit?.addEventListener("click", async () => {
   }
 
   try {
-    const result = await ipcRenderer.invoke("save-ip", ip);
-
-    if (!result.success) {
-      throw new Error(result.error);
-    }
+    setRobotHost(ip);
+    setRosUrl(getRosUrl());
+    await platform.saveIp(ip);
 
     console.log("IP tersimpan:", ip);
     connectOverlay.classList.add("hidden");
@@ -808,7 +776,6 @@ connectSubmit?.addEventListener("click", async () => {
   }
 });
 // ================= SYSTEM VOLUME CONTROL =================
-const { exec } = require("child_process");
 
 const volumeBtn = document.getElementById("volume-btn");
 const volumeOverlay = document.getElementById("volume-overlay");
@@ -835,20 +802,18 @@ volumeSlider.addEventListener("input", () => {
 
 // ================= LINUX AUDIO ENGINE =================
 function setSystemVolume(percent) {
-  exec(`pactl set-sink-volume @DEFAULT_SINK@ ${percent}%`);
+  platform.setVolume(percent).catch((error) => console.error("Volume update failed:", error));
 }
 
-function loadSystemVolume() {
-  exec(`pactl get-sink-volume @DEFAULT_SINK@`, (err, stdout) => {
-    if (err) return;
-
-    const match = stdout.match(/(\d+)%/);
-    if (match) {
-      const vol = match[1];
-      volumeSlider.value = vol;
-      volumeLabel.textContent = `${vol}%`;
-    }
-  });
+async function loadSystemVolume() {
+  try {
+    const response = await platform.getVolume();
+    const vol = response.value ?? response;
+    volumeSlider.value = vol;
+    volumeLabel.textContent = `${vol}%`;
+  } catch (error) {
+    console.error("Volume read failed:", error);
+  }
 }
 
 // ================= VIRTUAL KEYBOARD ENGINE =================
@@ -930,21 +895,12 @@ document.getElementById("dev-restart-ui")?.addEventListener("click", () => {
 });
 
 document.getElementById("dev-reconnect-ros")?.addEventListener("click", () => {
-  // location.reload(); // paling aman untuk re-init rosbridge
-  // panggil systemctl dari terminal
-  const { exec } = require("child_process");
-  exec(
-    "systemctl --user restart run_ros_riman.service",
-    (error, stdout, stderr) => {
-      if (error) {
-        console.error(`❌ Error restarting rosbridge: ${error.message}`);
-        alert("Gagal merestart rosbridge. Cek console untuk detail.");
-        return;
-      }
-      console.log(`✅ rosbridge restarted: ${stdout}`);
-      alert("rosbridge berhasil direstart.");
-    }
-  );
+  platform.restartRos()
+    .then(() => alert("rosbridge berhasil direstart."))
+    .catch((error) => {
+      console.error("❌ Error restarting rosbridge:", error);
+      alert("Gagal merestart rosbridge. Cek console untuk detail.");
+    });
 });
 
 document.getElementById("dev-clear-cache")?.addEventListener("click", () => {
@@ -955,7 +911,7 @@ document.getElementById("dev-clear-cache")?.addEventListener("click", () => {
 document
   .getElementById("dev-open-camera-test")
   ?.addEventListener("click", () => {
-    openViewer("mjpeg", camera_path);
+    openViewer("mjpeg", getCameraUrl());
     devOverlay.classList.add("hidden");
   });
 
@@ -977,7 +933,7 @@ devWebBtn.addEventListener("click", () => {
 function openDevWebOverlay() {
   devOverlay.classList.add("hidden");
   devWebOverlay.classList.remove("hidden");
-  devWebInput.value = ROS_IP;
+  devWebInput.value = getRobotHost();
   devWebInput.focus();
 }
 
@@ -1004,7 +960,7 @@ devWebOpen.addEventListener("click", () => {
 
 const keyboardOverlay = document.getElementById("keyboard-overlay");
 const keyboardInput = document.getElementById("keyboard-input");
-const webview = document.querySelector("webview");
+let activeEmbeddedView = null;
 
 // buka keyboard
 function showKeyboard() {
@@ -1028,7 +984,7 @@ document.querySelectorAll(".keys button[data-key]").forEach((btn) => {
 document.getElementById("keyboard-enter").addEventListener("click", () => {
   const text = keyboardInput.value;
 
-  webview.executeJavaScript(`
+  if (activeEmbeddedView?.executeJavaScript) activeEmbeddedView.executeJavaScript(`
     const el = document.activeElement;
     if (el && el.tagName === "INPUT") {
       el.value += ${JSON.stringify(text)};
@@ -1080,8 +1036,7 @@ async function loadWaypoints() {
   navList.innerHTML = "Loading...";
 
   try {
-    const host = ROS_IP;
-    const res = await fetch(`http://${host}/reeman/position`);
+    const res = await fetch(getRobotHttpUrl("/reeman/position"));
     const data = await res.json();
 
     navList.innerHTML = "";
@@ -1149,10 +1104,6 @@ safeSubscribe("/communication/nav_status", "std_msgs/Int8", (msg) => {
 
 //// ================= WI-FI MENU =================
 
-// Node-wifi integration
-const wifi = require("node-wifi");
-wifi.init({ iface: null });
-
 const wifiBtn = document.getElementById("wifi-btn");
 const wifiOverlay = document.getElementById("wifi-overlay");
 const wifiListEl = document.getElementById("wifi-list");
@@ -1167,29 +1118,28 @@ wifiClose.addEventListener("click", () => {
   wifiOverlay.classList.add("hidden");
 });
 
-function loadWifiNetworks() {
+async function loadWifiNetworks() {
   if (!wifiListEl) return;
   wifiListEl.innerHTML = "Mencari jaringan...";
-
-  wifi.scan((err, networks) => {
-    if (err) {
-      console.error("❌ Wi-Fi scan failed:", err);
-      wifiListEl.innerHTML = "Gagal memindai jaringan";
-      return;
-    }
-
-    renderWifiList(networks || []);
-  });
+  try {
+    const response = await platform.wifiScan();
+    renderWifiList(response.networks || response.value || []);
+  } catch (error) {
+    console.error("❌ Wi-Fi scan failed:", error);
+    wifiListEl.innerHTML = "Gagal memindai jaringan";
+  }
 }
 
-function renderWifiList(networks) {
+async function renderWifiList(networks) {
   wifiListEl.innerHTML = "";
 
   // sort by signal strength (desc)
   networks.sort((a, b) => (b.signal_level || 0) - (a.signal_level || 0));
 
   // get current connections to mark connected SSID
-  wifi.getCurrentConnections((err, conns) => {
+  try {
+    const response = await platform.wifiConnections();
+    const conns = response.connections || response.value || [];
     const connectedSsids = Array.isArray(conns) ? conns.map((c) => c.ssid) : [];
 
     networks.forEach((net) => {
@@ -1209,10 +1159,10 @@ function renderWifiList(networks) {
       wifiListEl.appendChild(btn);
     });
 
-    if (networks.length === 0) {
-      wifiListEl.innerHTML = "Tidak ada jaringan ditemukan";
-    }
-  });
+    if (networks.length === 0) wifiListEl.innerHTML = "Tidak ada jaringan ditemukan";
+  } catch (error) {
+    console.error("❌ Wi-Fi status failed:", error);
+  }
 }
 
 function onWifiClicked(net) {
@@ -1230,23 +1180,19 @@ function onWifiClicked(net) {
   }
 }
 
-function connectToWifi(ssid, password) {
+async function connectToWifi(ssid, password) {
   const statusEl = showTempStatus(`Menghubungkan ke ${ssid}...`);
-
-  wifi.connect({ ssid, password }, (err) => {
-    if (err) {
-      console.error("❌ Wi-Fi connect error", err);
-      showTempStatus(`Gagal terhubung: ${err.message || err}`, 4000);
-      return;
-    }
-
+  try {
+    await platform.wifiConnect(ssid, password);
     showTempStatus(`Berhasil terhubung ke ${ssid}`, 3000);
-    // refresh list and status
     setTimeout(() => {
       loadWifiNetworks();
       updateWifiStatusUI();
     }, 1200);
-  });
+  } catch (error) {
+    console.error("❌ Wi-Fi connect error", error);
+    showTempStatus(`Gagal terhubung: ${error.message || error}`, 4000);
+  }
 }
 
 function showTempStatus(msg, timeout = 2000) {
@@ -1304,8 +1250,8 @@ function promptWifiPassword(ssid, cb) {
       ">✕</button>
       <h3 style="margin: 0 0 8px 0; font-size: 30px; color: var(--yellow); text-shadow: 0 0 10px rgba(251, 226, 0, 0.45);">Masukkan kata sandi</h3>
       <div style="font-weight:700;margin-bottom:18px;color:var(--cyan);font-size:18px;word-break:break-word">${escapeHtml(
-        ssid
-      )}</div>
+    ssid
+  )}</div>
       <input
         type="password"
         id="wifi-pass-input"
@@ -1369,44 +1315,28 @@ function escapeHtml(s) {
   return String(s).replace(
     /[&<>"']/g,
     (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      }[c])
+    ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c])
   );
 }
 
 // ================= Wi‑Fi CONNECTION STATUS =================
 const wifiStatusEl = document.getElementById("wifi-connection");
 
-function getLocalIP() {
-  const nets = os.networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === "IPv4" && !net.internal) {
-        return net.address;
-      }
-    }
-  }
-  return null;
-}
-
-function updateWifiStatusUI() {
+async function updateWifiStatusUI() {
   if (!wifiStatusEl) return;
-
-  wifi.getCurrentConnections((err, conns) => {
-    if (err) {
-      console.error("❌ getCurrentConnections error", err);
-      wifiStatusEl.textContent = `Wi‑Fi: -- • IP: ${getLocalIP() || "--"}`;
-      return;
-    }
+  try {
+    const response = await platform.wifiConnections();
+    const conns = response.connections || response.value || [];
 
     const conn = Array.isArray(conns) && conns.length > 0 ? conns[0] : null;
     const ssid = conn && conn.ssid ? conn.ssid : null;
-    const ip = getLocalIP();
+    const ip = response.ip || "--";
 
     if (ssid) {
       wifiStatusEl.textContent = `Wi‑Fi: ${ssid} • IP: ${ip || "--"}`;
@@ -1415,7 +1345,10 @@ function updateWifiStatusUI() {
       wifiStatusEl.textContent = `Wi‑Fi: (disconnected) • IP: ${ip || "--"}`;
       wifiStatusEl.classList.remove("connected");
     }
-  });
+  } catch (error) {
+    console.error("❌ getCurrentConnections error", error);
+    wifiStatusEl.textContent = "Wi‑Fi: -- • IP: --";
+  }
 }
 
 // =============================================================================
@@ -1477,7 +1410,7 @@ function playCurrentHandVideo() {
   // aktifkan suara setelah autoplay
   video.oncanplay = () => {
     video.muted = false;
-    video.play().catch(() => {});
+    video.play().catch(() => { });
   };
 
   // video selesai → berikutnya
@@ -1526,13 +1459,8 @@ voiceBtn.addEventListener("click", () => {
   // karena ini pakai SpeechRecognition di voicechat nya, harus dibuka pakai Chrome
 
   // const chromeCmd = `DISPLAY=:0 google-chrome --kiosk --password-store=basic --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --disable-pinch --overscroll-history-navigation=0 --disk-cache-dir=/dev/null --window-position=1920,1200 "https://voice-chat-raisa.nabbit.id"`;
-  const chromeCmd = `DISPLAY=:0 google-chrome --kiosk --password-store=basic --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --disable-pinch --overscroll-history-navigation=0 --disk-cache-dir=/dev/null --disable-translate --disable-features=Translate --window-position=1920,1200 "https://voice-chat-raisa.nabbit.id"`;
-
-  exec(chromeCmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Failed to launch Chrome: ${error.message}`);
-    }
-  });
+  platform.launchChrome("https://voice-chat-raisa.nabbit.id")
+    .catch((error) => console.error("❌ Failed to launch Chrome:", error));
 
 });
 
@@ -1553,13 +1481,8 @@ voice2Btn.addEventListener("click", () => {
   // 2. Launch Google Chrome in Kiosk Mode
   // Note: We use --app to hide tabs, and pass all the media flags
   // const chromeCmd = `DISPLAY=:0 google-chrome --kiosk --app="http://localhost:2222" --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required`;
-  const chromeCmd = `DISPLAY=:0 google-chrome --kiosk --password-store=basic --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --disable-pinch --overscroll-history-navigation=0 --disk-cache-dir=/dev/null --window-position=1920,1200 "http://localhost:2222"`;
-
-  exec(chromeCmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Failed to launch Chrome: ${error.message}`);
-    }
-  });
+  platform.launchChrome("http://localhost:2222")
+    .catch((error) => console.error("❌ Failed to launch Chrome:", error));
 });
 
 // voiceBtn.addEventListener("click", () => {
