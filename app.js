@@ -1115,11 +1115,12 @@ function sendWaypointToROS(name) {
   const topic = safeTopic("/ui/goto_waypoint", "std_msgs/String");
   if (!topic) {
     alert("ROS belum terkoneksi ⚠️");
-    return;
+    return false;
   }
 
   topic.publish({ data: name });
   console.log("📤 Waypoint dikirim ke ROS:", name);
+  return true;
 }
 
 // Tombol AUTO & CANCEL
@@ -1145,6 +1146,144 @@ safeSubscribe("/communication/nav_status", "std_msgs/Int8", (msg) => {
     // navProgressOverlay.classList.add("hidden");
     sendWaypointToROS("cancel");
     navProgressTitle.textContent = `Robot telah sampai di lokasi tujuan!`;
+    handleVisitorNavigationArrival();
+  }
+});
+
+// =============================================================================
+// 👋 SAPA PENGUNJUNG
+// =============================================================================
+
+const visitorGreetingOverlay = document.getElementById("visitor-greeting-overlay");
+const visitorGreetingTitle = document.getElementById("visitor-greeting-title");
+const visitorGreetingMessage = document.getElementById("visitor-greeting-message");
+const visitorInitialActions = document.getElementById("visitor-initial-actions");
+const visitorArrivalActions = document.getElementById("visitor-arrival-actions");
+const visitorNavigationActions = document.getElementById("visitor-navigation-actions");
+const visitorGuideBtn = document.getElementById("visitor-guide-btn");
+const visitorDeclineBtn = document.getElementById("visitor-decline-btn");
+const visitorReturnPickupBtn = document.getElementById("visitor-return-pickup-btn");
+const visitorArrivalHomeBtn = document.getElementById("visitor-arrival-home-btn");
+const visitorNavigationHomeBtn = document.getElementById("visitor-navigation-home-btn");
+const interactionBtn = document.querySelector('.nav-btn[data-page="lain"]');
+
+const VISITOR_INITIAL_MESSAGE =
+  "Halo! Saya Robot asisten RAISA siap membantu. Apakah Anda ingin saya antar ke lokasi PT Optima Group?";
+const VISITOR_TAP_TARGET = 10;
+const VISITOR_TAP_WINDOW_MS = 3000;
+const VISITOR_ARRIVAL_GUARD_MS = 1000;
+
+let visitorJourneyStage = "idle";
+let visitorNavigationStartedAt = 0;
+let visitorTapCount = 0;
+let visitorTapTimer = null;
+
+function setVisitorActionGroup(activeGroup) {
+  [visitorInitialActions, visitorArrivalActions, visitorNavigationActions].forEach(
+    (group) => group.classList.toggle("hidden", group !== activeGroup)
+  );
+}
+
+function resetVisitorGreeting() {
+  visitorJourneyStage = "idle";
+  visitorNavigationStartedAt = 0;
+  visitorGreetingTitle.textContent = "Selamat datang";
+  visitorGreetingMessage.textContent = VISITOR_INITIAL_MESSAGE;
+  setVisitorActionGroup(visitorInitialActions);
+}
+
+function openVisitorGreeting() {
+  if (!visitorGreetingOverlay.classList.contains("hidden")) return;
+
+  resetVisitorGreeting();
+  visitorGreetingOverlay.classList.remove("hidden");
+}
+
+function closeVisitorGreeting() {
+  visitorGreetingOverlay.classList.add("hidden");
+  resetVisitorGreeting();
+  showPage("konten");
+}
+
+function startVisitorNavigation(waypoint, stage, title, message) {
+  if (!sendWaypointToROS(waypoint)) return;
+
+  visitorJourneyStage = stage;
+  visitorNavigationStartedAt = Date.now();
+  visitorGreetingTitle.textContent = title;
+  visitorGreetingMessage.textContent = message;
+  setVisitorActionGroup(visitorNavigationActions);
+}
+
+function handleVisitorNavigationArrival() {
+  if (
+    visitorJourneyStage === "idle" ||
+    Date.now() - visitorNavigationStartedAt < VISITOR_ARRIVAL_GUARD_MS
+  ) {
+    return;
+  }
+
+  if (visitorJourneyStage === "to-dropoff") {
+    visitorJourneyStage = "at-dropoff";
+    visitorGreetingTitle.textContent = "Tujuan tercapai";
+    visitorGreetingMessage.textContent = "Robot sudah sampai di titik antar.";
+    setVisitorActionGroup(visitorArrivalActions);
+    return;
+  }
+
+  if (visitorJourneyStage === "to-pickup") {
+    closeVisitorGreeting();
+  }
+}
+
+visitorGuideBtn.addEventListener("click", () => {
+  startVisitorNavigation(
+    "titikantar",
+    "to-dropoff",
+    "Menuju PT Optima Group",
+    "Robot sedang menuju titik antar. Silakan ikuti Robot RAISA."
+  );
+});
+
+visitorReturnPickupBtn.addEventListener("click", () => {
+  startVisitorNavigation(
+    "titikjemput",
+    "to-pickup",
+    "Kembali ke Titik Jemput",
+    "Robot sedang kembali menuju titik jemput."
+  );
+});
+
+[visitorDeclineBtn, visitorArrivalHomeBtn, visitorNavigationHomeBtn].forEach(
+  (button) => button.addEventListener("click", closeVisitorGreeting)
+);
+
+// 10 tap pada tombol Interaksi dalam 3 detik.
+interactionBtn.addEventListener("click", () => {
+  visitorTapCount++;
+
+  if (!visitorTapTimer) {
+    visitorTapTimer = setTimeout(() => {
+      visitorTapCount = 0;
+      visitorTapTimer = null;
+    }, VISITOR_TAP_WINDOW_MS);
+  }
+
+  if (visitorTapCount >= VISITOR_TAP_TARGET) {
+    openVisitorGreeting();
+    visitorTapCount = 0;
+    clearTimeout(visitorTapTimer);
+    visitorTapTimer = null;
+  }
+});
+
+safeSubscribe("/vision/face_detected", "std_msgs/Int8", (msg) => {
+  const faceDetected = Number(msg.data) === 1;
+
+  if (faceDetected) {
+    openVisitorGreeting();
+  } else if (!visitorGreetingOverlay.classList.contains("hidden")) {
+    closeVisitorGreeting();
   }
 });
 
@@ -1579,6 +1718,8 @@ voice2Btn.addEventListener("click", () => {
 //     window.location.href = "voice.html";
 //   }, 100);
 // });
+
+const sapapengunjungBtn = document.getElementById("sapapengunjung-btn");
 
 // update periodically
 setTimeout(updateWifiStatusUI, 800);
