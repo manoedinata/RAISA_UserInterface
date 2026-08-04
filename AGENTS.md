@@ -6,6 +6,7 @@
 - Renderer markup and styles: `index.html`, `style.css`.
 - Renderer behavior and ROS integration: `app.js`.
 - Shared ROS connection wrapper: `bridge.js`.
+- Window modes are selected in `main.js`: `--dev` or `NODE_ENV=development` uses 640×960 windowed mode; the default production mode uses 1200×1920 fullscreen.
 
 ## ROS conventions
 
@@ -27,4 +28,5 @@
 ## Validation
 
 - Run JavaScript syntax checks for changed renderer scripts.
+- Run `npm run dev` for non-fullscreen development; `npm start` is the production configuration.
 - Verify Electron can start after UI changes; interactive robot and ROS validation is performed on the target system.

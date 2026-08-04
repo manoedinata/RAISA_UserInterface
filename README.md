@@ -5,7 +5,10 @@ Antarmuka Electron untuk Robot RAISA yang terhubung ke ROS melalui rosbridge.
 ## Menjalankan aplikasi
 
 - Instal dependensi dengan `npm install`.
-- Jalankan antarmuka dengan `npm start`.
+- Produksi: `npm start` menggunakan jendela 1200×1920 dalam mode fullscreen.
+- Development: `npm run dev` menggunakan jendela 640×960 tanpa fullscreen.
+
+Mode development juga dapat diaktifkan dengan environment variable `NODE_ENV=development` atau argumen Electron `--dev`. Jika keduanya tidak diberikan, aplikasi otomatis menggunakan mode produksi.
 
 ## Menu Sapa Pengunjung
 

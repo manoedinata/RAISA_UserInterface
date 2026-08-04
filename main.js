@@ -6,6 +6,12 @@ const http = require('http');
 const { exec } = require("child_process");
 
 const IP_FILE = "/home/raisa/ip_controller.txt";
+const isDevelopment =
+  process.env.NODE_ENV === "development" || process.argv.includes("--dev");
+
+const WINDOW_CONFIG = isDevelopment
+  ? { width: 640, height: 960, fullscreen: false }
+  : { width: 1200, height: 1920, fullscreen: true };
 
 ipcMain.handle("save-ip", async (_, ip) => {
   try {
@@ -32,15 +38,15 @@ ipcMain.handle("save-ip", async (_, ip) => {
 function createWindow() {
   const displays = screen.getAllDisplays();
   const targetDisplay = displays.length > 1 ? displays[1] : displays[0];
-  const { x, y, width, height } = targetDisplay.bounds;
+  const { x, y } = targetDisplay.bounds;
 
   const win = new BrowserWindow({
     x,
     y, // slight offset to avoid taskbar overlap
-    width: 1200,
-    height: 1920,
+    width: WINDOW_CONFIG.width,
+    height: WINDOW_CONFIG.height,
     frame: false, // ✅ no OS border/titlebar
-    fullscreen: true, // ✅ force fullscreen
+    fullscreen: WINDOW_CONFIG.fullscreen,
     resizable: false, // ✅ lock size
 
     webPreferences: {
@@ -54,6 +60,11 @@ function createWindow() {
       autoplayPolicy: "no-user-gesture-required",
     },
   });
+
+  console.log(
+    `🖥️ Window mode: ${isDevelopment ? "development" : "production"} ` +
+    `(${WINDOW_CONFIG.width}x${WINDOW_CONFIG.height}, fullscreen: ${WINDOW_CONFIG.fullscreen})`
+  );
 
   win.loadFile("index.html");
 
@@ -73,10 +84,10 @@ app.commandLine.appendSwitch('force-device-scale-factor', '1');
 const killServer = http.createServer((req, res) => {
   // Set CORS headers so Chrome is allowed to talk to it
   res.setHeader('Access-Control-Allow-Origin', '*');
-  
+
   if (req.url === '/kill-chrome' && req.method === 'POST') {
     console.log("🛑 Received command to close Chrome. Terminating...");
-    
+
     // Command to forcefully kill Google Chrome
     exec('pkill chrome || killall google-chrome', (err) => {
       res.writeHead(200);
@@ -96,20 +107,20 @@ killServer.listen(9999, 'localhost', () => {
 app.whenReady().then(() => {
   // 1. Handle Permission Requests
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-      // 'media' covers both microphone and camera
-      if (permission === 'media') {
-          callback(true) // Grant permission
-      } else {
-          callback(false) // Deny everything else, or handle accordingly
-      }
+    // 'media' covers both microphone and camera
+    if (permission === 'media') {
+      callback(true) // Grant permission
+    } else {
+      callback(false) // Deny everything else, or handle accordingly
+    }
   })
 
   // 2. Handle Permission Checks (optional but recommended for completeness)
   session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-      if (permission === 'media') {
-          return true
-      }
-      return false
+    if (permission === 'media') {
+      return true
+    }
+    return false
   })
 
   // clear cache before creating the window to ensure a fresh start
