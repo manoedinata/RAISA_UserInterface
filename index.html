@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Robot UI – Corporate Futuristic</title>
+
+  <!-- Allow External Content (iframe/webview) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div id="touch-ripple-container"></div>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand">
+      <img src="assets/logo.png" class="logo" />
+      <div class="title">RAISA HUMANOID ITS</div>
+    </div>
+    <div class="battery-status" id="battery-status">
+      <div class="battery-icon">
+        <div class="battery-level" id="battery-level"></div>
+      </div>
+      <span id="battery-percent">--%</span>
+    </div>
+
+    <!-- <div class="menu-icon">☰</div> -->
+  </header>
+
+  <!-- PAGE: KONTEN -->
+  <main id="konten" class="page active">
+    <div class="content" id="content-grid">
+
+      <!-- <div
+          class="card konten"
+          data-type="video"
+          data-src="assets/toyota_1.mp4"
+        >
+          <img src="assets/toyota_1.png" />
+          <div class="card-info">
+            <h1>Kembali Melintasi Indonesia. #Toyota</h1>
+          </div>
+        </div> -->
+
+      <div class="card konten" data-type="video" data-src="assets/Diktisaintek-Berdampak.mp4">
+        <img src="assets/berdampak.png" />
+        <div class="card-info">
+          <h1>Diktisaintek Berdampak</h1>
+        </div>
+      </div>
+
+      <div class="card konten" data-type="video" data-src="assets/Diktisaintek-Berdampak-Peta-Jalan-Menuju-Kampus-Berdampak.mp4">
+        <img src="assets/Diktisaintek-Berdampak.png" />
+        <div class="card-info">
+          <h1>Diktisaintek Berdampak: Peta Jalan Menuju Kampus Berdampak</h1>
+        </div>
+      </div>
+
+
+      <div class="card konten" data-type="video" data-src="assets/profile-its.mp4">
+        <img src="assets/img-profile-its.jpg" />
+        <div class="card-info">
+          <h1>Video Profile ITS</h1>
+        </div>
+      </div>
+
+      <div class="card konten" data-type="video" data-src="assets/profil_robotika.mp4">
+        <img src="assets/robotika_its.jpg" />
+        <div class="card-info">
+          <h1>Video Profile Robotika ITS</h1>
+        </div>
+      </div>
+
+      <!-- <div
+          class="card konten"
+          data-type="video"
+          data-src="assets/RAISA_1.mp4"
+        >
+          <img src="assets/raisa-thumb.png" />
+          <div class="card-info">
+            <h1>RAISA Humanoid</h1>
+            <!\-- <h3>video singkat tentang profile ITS</h3> -\->
+          </div>
+        </div> -->
+
+      <div class="card konten" data-type="video" data-src="assets/ROBOT AI_1.mp4">
+        <img src="assets/ai-thumb.png" />
+        <div class="card-info">
+          <h1>Robot Edukasi AI</h1>
+
+        </div>
+      </div>
+
+      <div class="card konten" data-type="video" data-src="assets/iris.mp4">
+        <img src="assets/iris.png" />
+        <div class="card-info">
+          <h1>IRIS: A journey of passion, innovation, and perseverance!</h1>
+        </div>
+      </div>
+
+      <!-- <div
+          class="card konten"
+          data-type="video"
+          data-src="assets/robot_anjing.mp4"
+        >
+          <img src="assets/robot_anjing.jpeg" />
+          <div class="card-info">
+            <h1>Robot Anjing ITS</h1>
+          </div>
+        </div> -->
+
+      <div class="card konten" data-type="video" data-src="assets/RAISA 2.0.mp4">
+        <img src="assets/raisa_lama_2.png" />
+        <div class="card-info">
+          <h1>Robot RAISA ITS</h1>
+          <!-\- <h3>video singkat tentang profile ITS</h3> -\->
+        </div>
+      </div>
+
+      <!-- <div
+          class="card konten"
+          data-type="video"
+          data-src="assets/TEASER 1 RAISA 2.0.mp4"
+        >
+          <img src="assets/raisa_lama.png" />
+          <div class="card-info">
+            <h1>Teaser RAISA ITS</h1>
+            <!-\- <h3>video singkat tentang profile ITS</h3> -\->
+          </div>
+        </div> -->
+    </div>
+  </main>
+
+  <!-- PAGE: MAKANAN -->
+  <main id="makanan" class="page">
+    <div class="content" id="food-grid">
+             
+
+
+      <div class="card makanan" data-type="food-detail">
+        <img src="assets/icon_mentri/kemdiktisaintek.png" />
+        <div class="overlay">Kemdiktisaintek</div>
+      </div>
+
+      <div class="card makanan" data-type="food-detail">
+        <img src="assets/icon_mentri/kemenkeu.png" />
+        <div class="overlay">Kemenkeu.png</div>
+      </div>
+
+
+      <div class="card makanan" data-type="food-detail">
+        <img src="assets/icon_mentri/esdm.png" />
+        <div class="overlay">Kementrian ESDM.png</div>
+      </div>
+
+      <div class="card makanan" data-type="food-detail">
+        <img src="assets/icon_mentri/kemendagri.png" />
+        <div class="overlay">Kemendagri.png</div>
+      </div>
+<!-- 
+              <div class="card makanan" data-type="food-detail">
+          <img src="assets/food.jpeg" />
+          <div class="overlay">Ayam Geprek</div>
+        </div> 
+       
+        <div class="card makanan" data-type="food-detail">
+          <img src="assets/sate-ayam.jpg" />
+          <div class="overlay">Sate Ayam</div>
+        </div>
+
+        <div class="card makanan" data-type="food-detail">
+          <img src="assets/bakso.jpeg" />
+          <div class="overlay">Bakso</div>
+        </div>
+
+        <div class="card makanan" data-type="food-detail">
+          <img src="assets/nasi-goreng.jpg" />
+          <div class="overlay">Nasi Goreng</div>
+        </div> 
+
+       <div class="card makanan" data-type="food-detail">
+          <img src="assets/tahu-campur.jpg" />
+          <div class="overlay">Tahu Campur</div>
+        </div> 
+ -->
+
+
+    </div>
+  </main>
+
+  <!-- ======= PAGE: LAIN-LAIN ======= -->
+  <main id="lain" class="page">
+    <div class="lain-grid">
+      <!-- <div class="content-only-scroll" id="lain-grid"> -->
+      <!-- Camera Button -->
+      <div class="lain-btn" id="camera-btn">
+        <img src="assets/icon-camera.png" class="lain-icon" />
+        <p>KAMERA</p>
+      </div>
+
+      <!-- Promo Video Button -->
+      <div class="lain-btn" id="promo-btn">
+        <img src="assets/icon-promotional.png" class="lain-icon" />
+        <p>VIDEO</p>
+      </div>
+
+      <!-- About Button -->
+      <div class="lain-btn" id="about-btn">
+        <img src="assets/icon-about.png" class="lain-icon" />
+        <p>TENTANG RAISA</p>
+      </div>
+
+      <!-- Docking Charge Button -->
+      <div class="lain-btn" id="docking-btn">
+        <img src="assets/icon-charge.png" class="lain-icon" />
+        <p>GO TO DOCKING CHARGE</p>
+      </div>
+
+      <div class="lain-btn" id="music-btn">
+        <img src="assets/icon-music.png" class="lain-icon" />
+        <p>MUSIC</p>
+      </div>
+
+      <!-- Connection Button -->
+      <div class="lain-btn" id="connect-btn">
+        <img src="assets/icon-network.png" class="lain-icon" />
+        <p>KONEKSI</p>
+      </div>
+
+      <div class="lain-btn" id="volume-btn">
+        <img src="assets/icon-volume.png" class="lain-icon" />
+        <p>VOLUME</p>
+      </div>
+
+      <!-- Navigation Button -->
+      <div class="lain-btn" id="nav-btn">
+        <img src="assets/icon-nav.png" class="lain-icon" />
+        <p>NAVIGASI</p>
+      </div>
+
+      <!-- Wi-Fi -->
+      <div class="lain-btn" id="wifi-btn">
+        <img src="assets/tethering.png" class="lain-icon" />
+        <p>LAN</p>
+      </div>
+
+      <!-- Bluetooth -->
+      <!-- HENDRA: TODO -->
+      <!-- <div class="lain-btn" id="bluetooth-btn"> 
+          <img src="assets/bluetooth.png" class="lain-icon" />
+          <p>Connect Bluetooth</p>
+        </div> -->
+
+      <!-- 5 Finger Demo -->
+      <!-- <div class="lain-btn" id="tangan-btn"> -->
+        <!-- <img src="assets/hand.png" class="lain-icon" /> -->
+        <!-- <p>Demo Tangan</p> -->
+      <!-- </div> -->
+
+      <!-- 5 Finger Demo -->
+      <div class="lain-btn" id="video-tangan-btn">
+        <img src="assets/hand.png" class="lain-icon" />
+        <p>Demo Tangan</p>
+      </div>
+
+      <!-- Voice chat -->
+      <div class="lain-btn" id="voice-btn">
+        <img src="assets/voice-chat.png" class="lain-icon" />
+        <p>Voice Chat</p>
+      </div>
+
+      <div class="lain-btn" id="voice2-btn">
+        <img src="assets/voice-chat.png" class="lain-icon" />
+        <p>Voice Chat (New)</p>
+      </div>
+
+
+      <!-- SEKAT -->
+    </div>
+  </main>
+
+  <!-- FOOTER NAV -->
+  <footer class="footer">
+    <button class="nav-btn active" data-page="konten">
+      📄
+      <p>KONTEN</p>
+    </button>
+    <button class="nav-btn" data-page="makanan">
+      ℹ️
+      <p>INFORMASI</p>
+    </button>
+    <button class="nav-btn" data-page="lain">
+      🤖
+      <p>INTERAKSI</p>
+    </button>
+    <!-- <button class="nav-btn" id="add-btn">➕<p>TAMBAH</p></button> -->
+  </footer>
+
+  <!-- FULLSCREEN VIEWER -->
+  <div id="viewer-overlay" class="viewer hidden">
+    <!-- Viewer Top Header -->
+    <div class="viewer-header">
+      <button id="viewer-close">✕</button>
+    </div>
+
+    <!-- Viewer Content -->
+    <div class="viewer-content" id="viewer-content"></div>
+  </div>
+
+  <!-- ABOUT OVERLAY -->
+  <div id="about-overlay" class="about-overlay hidden">
+    <div class="about-content">
+      <button id="about-close">✕</button>
+      <h1>
+        Saya adalah <b>Robot Raisa Humanoid</b>, robot servis yang bertugas
+        mengantarkan barang di restoran, kantor, dan berbagai fasilitas umum.
+        Dengan desain modern menyerupai manusia, Saya memiliki layar
+        interaktif dan ruang penyimpanan untuk membawa dokumen, makanan, atau
+        minuman. Berbekal sistem navigasi otomatis, Saya dapat bergerak
+        mandiri dan efisien sehingga membantu meningkatkan pelayanan serta
+        meringankan pekerjaan manusia.
+      </h1>
+    </div>
+  </div>
+
+  <!-- MUSIC OVERLAY -->
+  <div id="music-overlay" class="viewer hidden">
+    <div class="viewer-header">
+      <button id="music-close">✕</button>
+    </div>
+    <div class="viewer-content music-content">
+      <div class="music-list-container">
+        <h2>🎵 Pilih Lagu</h2>
+        <ul id="music-list"></ul>
+      </div>
+    </div>
+  </div>
+  <audio id="bgm-player" preload="auto"></audio>
+
+  <!-- DOCKING STATUS OVERLAY -->
+  <div id="docking-overlay" class="viewer hidden">
+    <div class="docking-box">
+      <img src="assets/icon-charge.png" class="docking-img" />
+      <h2 id="docking-message">SEDANG MENUJU CHARGING PILE!</h2>
+      <button id="docking-cancel">CANCEL</button>
+      <button id="docking-close" class="hidden">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- ===== NAVIGATION OVERLAY ===== -->
+  <div id="nav-overlay" class="hidden">
+    <div class="nav-box">
+      <h2>Pilih Tujuan</h2>
+
+      <div id="nav-list"></div>
+      <!-- CONTROL BUTTON -->
+      <div class="nav-control">
+        <button id="nav-auto" class="nav-control-btn auto">AUTO</button>
+        <button id="nav-cancel" class="nav-control-btn cancel">CANCEL</button>
+      </div>
+      <button id="nav-close">TUTUP</button>
+    </div>
+  </div>
+
+  <!-- ===== Wi-Fi OVERLAY ===== -->
+  <div id="wifi-overlay" class="hidden">
+    <div class="nav-box">
+      <div class="wifi-connection" id="wifi-connection">Wi‑Fi: -- • IP: --</div>
+      <h2>Select Wi-Fi network</h2>
+
+      <div id="nav-list"></div>
+
+      <!-- CONTROL BUTTON -->
+      <!-- <div class="nav-control">
+          <button id="nav-auto" class="nav-control-btn auto">AUTO</button>
+          <button id="nav-cancel" class="nav-control-btn cancel">CANCEL</button>
+        </div> -->
+      <div id="wifi-list"></div>
+      <button id="wifi-close">TUTUP</button>
+    </div>
+  </div>
+
+  <!-- ===== CONNECT OVERLAY ===== -->
+  <div id="connect-overlay" class="viewer hidden">
+    <div class="viewer-header">
+      <button id="connect-close">✕</button>
+    </div>
+
+    <div class="viewer-content" style="
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 24px;
+        ">
+      <h2>Masukkan IP ROS</h2>
+
+      <input id="ip-input" type="text" placeholder="Contoh: 192.168.1.10" style="
+            font-size: 20px;
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: none;
+            width: 300px;
+            text-align: center;
+          " />
+
+      <button id="connect-submit" style="
+            margin-top: 10px;
+            font-size: 18px;
+            padding: 12px 26px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            background: #13c9e7;
+            font-weight: bold;
+          ">
+        KONEKSIKAN
+
+    </div>
+  </div>
+
+  <!-- ======================= Volume OVERLAY ======================= -->
+  <div id="volume-overlay" class="hidden">
+    <div class="docking-box">
+      <h2>🔊 VOLUME SYSTEM</h2>
+
+      <input type="range" id="volume-slider" min="0" max="100" value="50" style="width: 100%; margin: 30px 0" />
+
+      <div id="volume-label">50%</div>
+
+      <br />
+      <button id="volume-close">TUTUP</button>
+    </div>
+  </div>
+
+  <!-- ===== DEV CONFIG OVERLAY ===== -->
+  <div id="dev-config-overlay" class="hidden">
+    <div class="dev-header">
+      <h2>⚙️ DEVELOPER CONFIG</h2>
+      <button id="dev-config-close">✕</button>
+    </div>
+
+    <div class="dev-grid">
+      <!-- Contoh tombol dev -->
+      <div class="dev-btn" id="dev-restart-ui">
+        <p>RESTART UI</p>
+      </div>
+
+      <div class="dev-btn" id="dev-reconnect-ros">
+        <p>RECONNECT ROS</p>
+      </div>
+
+      <div class="dev-btn" id="dev-clear-cache">
+        <p>CLEAR CACHE</p>
+      </div>
+
+      <div class="dev-btn" id="dev-open-camera-test">
+        <p>CAMERA TEST</p>
+      </div>
+
+      <div class="dev-btn" id="dev-open-browser">
+        <p>OPEN BROWSER</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DEV WEB OPEN OVERLAY ===== -->
+  <div id="dev-web-overlay" class="about-overlay hidden">
+    <div class="about-content">
+      <button id="dev-web-close">✕</button>
+
+      <h2 style="color: var(--cyan); margin-bottom: 20px">
+        DEV WEBVIEW MODE
+      </h2>
+
+      <input id="dev-web-input" type="text" placeholder="https://contoh.com" style="
+            width: 100%;
+            padding: 16px;
+            font-size: 20px;
+            border-radius: 10px;
+            border: 3px solid var(--cyan);
+            outline: none;
+            margin-bottom: 20px;
+          " />
+
+      <button id="dev-web-open" class="docking-button">OPEN WEB</button>
+    </div>
+  </div>
+
+  <!-- =================== NAVIGATION PROGRESS OVERLAY =================== -->
+  <div id="nav-progress-overlay" class="hidden">
+    <div class="nav-progress-box">
+      <h2 id="nav-progress-title">Robot sedang menuju...</h2>
+
+      <!-- <img src="assets/icon-nav.png" class="nav-progress-img" /> -->
+
+      <button id="nav-progress-cancel" class="nav-progress-btn cancel">
+        BATALKAN
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ================= VIRTUAL KEYBOARD SIMPLE ================= -->
+  <div id="keyboard-overlay" class="hidden">
+    <div class="keyboard">
+      <input id="keyboard-input" readonly />
+
+      <div class="keys">
+        <button data-key="1">1</button>
+        <button data-key="2">2</button>
+        <button data-key="3">3</button>
+
+        <button data-key="q">Q</button>
+        <button data-key="w">W</button>
+        <button data-key="e">E</button>
+
+        <button data-key=" ">SPACE</button>
+        <button data-key="backspace">⌫</button>
+        <button id="keyboard-enter">ENTER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VIRTUAL KEYBOARD ================= -->
+  <div id="vk-overlay" class="vk hidden">
+    <div class="vk-container">
+      <div class="vk-row">
+        <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button> <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+        <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
+        <button data-key="0">0</button>
+        <button data-key="Backspace" class="wide">⌫</button>
+      </div>
+
+      <div class="vk-row">
+        <button data-key="q">Q</button><button data-key="w">W</button><button data-key="e">E</button> <button data-key="r">R</button><button data-key="t">T</button><button data-key="y">Y</button>
+        <button data-key="u">U</button><button data-key="i">I</button><button data-key="o">O</button>
+        <button data-key="p">P</button>
+      </div>
+
+      <div class="vk-row">
+        <button data-key="a">A</button><button data-key="s">S</button><button data-key="d">D</button> <button data-key="f">F</button><button data-key="g">G</button><button data-key="h">H</button>
+        <button data-key="j">J</button><button data-key="k">K</button><button data-key="l">L</button>
+      </div>
+
+      <div class="vk-row">
+        <button data-key="z">Z</button><button data-key="x">X</button><button data-key="c">C</button> <button data-key="v">V</button><button data-key="b">B</button><button data-key="n">N</button>
+        <button data-key="m">M</button>
+        <button data-key=".">.</button>
+        <button data-key=":">:</button>
+        <button data-key="-">-</button>
+      </div>
+
+      <div class="vk-row">
+        <button data-key=" " class="space">SPACE</button>
+        <button data-key="Enter" class="wide enter">ENTER</button>
+      </div>
+
+      <button id="vk-close" class="vk-close">✕</button>
+    </div>
+  </div>
+
+  <script src="./roslib.min.js"></script>
+  <script type="module" src="bridge.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>

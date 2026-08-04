@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Futuristic Biometric Scanner</title>
+    <style>
+        :root {
+            --neon-blue: #00d2ff;
+            --dark-bg: #050b14;
+            --success-green: #00ff66;
+            --scan-orange: #ffaa00;
+            --cyan: #00ffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; 
+            background-color: var(--dark-bg);
+            background-image: linear-gradient(rgba(0, 210, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 210, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--neon-blue);
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+        
+        #touchArea {
+            width: 100vw; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative; 
+        }
+
+        /* --- UPDATED ANDROID-STYLE TOUCH INDICATORS --- */
+        #touchIndicators {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            z-index: 50; 
+            overflow: hidden;
+        }
+
+        .finger-node {
+            position: absolute;
+            width: 100px; /* Sized to match typical fingertip */
+            height: 100px;
+            border-radius: 50%;
+            
+            /* Android "Show Touches" Styling */
+            background-color: rgba(255, 255, 255, 0.4); 
+            border: 1.5px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.2); /* Very subtle glow */
+            
+            transform: translate(-50%, -50%);
+            
+            /* Quick pop-in animation instead of endless pulsing */
+            /* animation: touchPop 0.1s ease-out forwards; */
+        }
+
+        /* Keep the cool green success transition */
+        .finger-node.success {
+            border-color: var(--success-green);
+            background-color: rgba(0, 255, 102, 0.2);
+            box-shadow: 0 0 20px var(--success-green), inset 0 0 10px var(--success-green);
+            transform: translate(-50%, -50%) scale(1.1);
+            transition: all 0.3s ease;
+        }
+
+        @keyframes touchPop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        /* --------------------------------- */
+
+        #backBtn {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            z-index: 100;
+            background: rgba(0, 210, 255, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.3), inset 0 0 10px rgba(0, 210, 255, 0.1);
+            border-radius: 3px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        #backBtn:active {
+            background: var(--neon-blue);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        #toggleBtn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            z-index: 100;
+            background: rgba(0, 210, 255, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.3), inset 0 0 10px rgba(0, 210, 255, 0.1);
+            border-radius: 3px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        #toggleBtn:active {
+            background: var(--neon-blue);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        #hud {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+            max-width: 600px; 
+            height: 80px; 
+            margin-bottom: 20px;
+        }
+
+        #message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon-blue);
+            margin-bottom: 15px;
+            opacity: 0; 
+        }
+
+        #progressContainer {
+            width: 100%;
+            height: 12px;
+            border: 1px solid var(--neon-blue);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+            overflow: hidden;
+            opacity: 0; 
+        }
+
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        #scannerWrapper {
+            position: relative; 
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        img {
+            display: block;
+            width: 100%;
+            max-width: 1000px;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.7));
+        }
+
+        #scanLine {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px; 
+            background-color: var(--scan-orange);
+            box-shadow: 0 0 20px var(--scan-orange), 0 0 40px var(--scan-orange);
+            opacity: 0; 
+            z-index: 10;
+            pointer-events: none; 
+        }
+
+        .is-scanning #scanLine {
+            opacity: 1;
+            animation: scanMotion 0.8s linear infinite alternate;
+        }
+
+        @keyframes scanMotion {
+            0% { top: 5%; }
+            100% { top: 95%; }
+        }
+
+        .stats {
+            position: absolute;
+            bottom: 30px;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px var(--neon-blue);
+        }
+
+        .success-text {
+            color: var(--success-green) !important;
+            text-shadow: 0 0 15px var(--success-green) !important;
+        }
+        .success-bar {
+            background-color: var(--success-green) !important;
+            box-shadow: 0 0 15px var(--success-green) !important;
+        }
+        .success-border {
+            border-color: var(--success-green) !important;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.3) !important;
+        }
+        .scanning-text {
+            color: var(--scan-orange) !important;
+            text-shadow: 0 0 15px var(--scan-orange) !important;
+        }
+
+        /* ===== PROMO VIDEO PLAYER ===== */
+        #viewerOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000; 
+        }
+
+        #viewerOverlay.hidden {
+            display: none;
+        }
+
+        #viewerContent {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #promo-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; 
+            background-color: #000; 
+        }
+
+        #promo-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 60px;
+            color: var(--cyan);
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            padding: 8px 14px;
+            border-radius: 10px;
+            z-index: 10000;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #promo-close.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewerOverlay" class="hidden">
+        <div id="viewerContent"></div>
+    </div>
+
+    <div id="touchArea">
+        <div id="touchIndicators"></div>
+
+        <button id="backBtn">◀ BACK</button>
+        <button id="toggleBtn">REQ: 5 FINGERS</button>
+        <!-- <button id="mimickFinger">
+            MIMICK FINGER
+        </button> -->
+
+        <div id="hud">
+            <div id="message">AWAITING INPUT...</div>
+            <div id="progressContainer">
+                <div id="progressBar"></div>
+            </div>
+        </div>
+
+        <div id="scannerWrapper">
+            <img src="palm2.png" alt="Biometric Palm">
+            <div id="scanLine"></div>
+        </div>
+        
+        <div class="stats">
+            FINGERS DETECTED: <span id="fingerCount">0</span>
+        </div>
+    </div>
+
+    <script>
+        // WEBSOCKET
+        var payload;
+        var isDoneScanning = false;
+        const ws = new WebSocket("ws://0.0.0.0/ws");
+
+        ws.addEventListener("open", () => {
+            console.log("WebSocket connection established.");
+            const payload = { event: 'connect_init', status: 'initialized' };
+            ws.send(JSON.stringify(payload));
+        });
+
+        // unused
+        ws.addEventListener("message", (event) => {
+            console.log("Received message:", JSON.parse(event.data));
+        });
+
+        const touchArea = document.getElementById("touchArea");
+        const fingerCountElement = document.getElementById("fingerCount");
+        const messageElement = document.getElementById("message");
+        const toggleBtn = document.getElementById("toggleBtn");
+        const backBtn = document.getElementById("backBtn"); 
+        const progressContainer = document.getElementById("progressContainer");
+        const progressBar = document.getElementById("progressBar");
+        const scannerWrapper = document.getElementById("scannerWrapper");
+        
+        const viewerOverlay = document.getElementById("viewerOverlay");
+        const viewerContent = document.getElementById("viewerContent");
+
+        const touchIndicators = document.getElementById("touchIndicators");
+
+        // const mimickFingerBtn = document.getElementById("mimickFinger");
+        // mimickFingerBtn.addEventListener("click", () => {
+        //     const simulatedTouches = [
+        //         { clientX: 200, clientY: 300 },
+        //         { clientX: 300, clientY: 300 },
+        //         { clientX: 400, clientY: 300 },
+        //         { clientX: 500, clientY: 300 },
+        //         { clientX: 600, clientY: 300 },
+        //     ];
+
+        //     renderTouchIndicators(simulatedTouches);
+        //     fingerCountElement.textContent = simulatedTouches.length;
+        // });
+
+        let holdTimer = null;
+        let requiredFingers = 5; 
+        const TIMEOUT_MS = 2000; 
+
+        function resetUI() {
+            if (holdTimer !== null) {
+                clearTimeout(holdTimer);
+                holdTimer = null; 
+            }
+            
+            messageElement.style.opacity = "0";
+            progressContainer.style.opacity = "0";
+            progressBar.style.transition = "none";
+            progressBar.style.width = "0%";
+            messageElement.className = "";
+            progressBar.className = "";
+            progressContainer.className = "";
+            
+            scannerWrapper.classList.remove("is-scanning");
+
+            // Clear visual finger ripples
+            touchIndicators.innerHTML = "";
+        }
+
+        function renderTouchIndicators(touches) {
+            touchIndicators.innerHTML = ""; 
+            
+            for (let i = 0; i < touches.length; i++) {
+                const node = document.createElement("div");
+                node.className = "finger-node";
+                node.style.left = touches[i].clientX + "px";
+                node.style.top = touches[i].clientY + "px";
+                touchIndicators.appendChild(node);
+            }
+        }
+
+        backBtn.addEventListener("click", () => {
+            window.location.href = "index.html";
+        });
+
+        toggleBtn.addEventListener("click", () => {
+            requiredFingers = requiredFingers === 5 ? 1 : 5;
+            toggleBtn.textContent = `REQ: ${requiredFingers} FINGER${requiredFingers > 1 ? 'S' : ''}`;
+            resetUI();
+        });
+
+        function handleTouchEvent(event) {
+            if (event.target.id !== "toggleBtn" && event.target.id !== "backBtn" && event.target.id !== "promo-close") {
+                event.preventDefault();
+            }
+
+            if (!viewerOverlay.classList.contains("hidden")) return;
+
+            const fingerCount = event.touches.length;
+            fingerCountElement.textContent = fingerCount;
+
+            if (fingerCount >= requiredFingers) {
+
+                // DISINI TANGAN SUDAH ADA
+                if (!isDoneScanning) {
+                    ws.send(JSON.stringify({ event: 'biometric_scan', status: 'scanning', fingers_detected: fingerCount }));
+                }
+
+                renderTouchIndicators(event.touches);
+
+                if (holdTimer === null) {
+                    
+                    messageElement.textContent = "SCANNING BIOMETRICS...";
+                    messageElement.className = "scanning-text"; 
+                    messageElement.style.opacity = "1";
+                    progressContainer.style.opacity = "1";
+
+                    scannerWrapper.classList.add("is-scanning");
+
+                    void progressBar.offsetWidth; 
+
+                    progressBar.style.transition = `width ${TIMEOUT_MS}ms linear`;
+                    progressBar.style.width = "100%";
+
+                    holdTimer = setTimeout(() => {
+                        // DISINI TANGAN SUDAH DIHOLD
+                        isDoneScanning = true;
+                        ws.send(JSON.stringify({ event: 'biometric_scan', status: 'authorized', fingers_detected: fingerCount }));
+
+                        messageElement.textContent = "AUTHORIZATION GRANTED";
+                        messageElement.className = "success-text";
+                        progressBar.className = "success-bar";
+                        progressContainer.className = "success-border";
+                        
+                        scannerWrapper.classList.remove("is-scanning");
+
+                        const nodes = document.querySelectorAll('.finger-node');
+                        nodes.forEach(node => node.classList.add('success'));
+
+                        setTimeout(() => {
+                            openPromoVideo(["./assets/scan-gebyar.mp4"]);
+                        }, 800);
+
+                    }, TIMEOUT_MS); 
+                }
+            } else {
+                ws.send(JSON.stringify({ event: 'biometric_scan', status: 'idle', fingers_detected: fingerCount }));
+                resetUI();
+            }
+        }
+
+        const options = { passive: false };
+        
+        touchArea.addEventListener("touchstart", handleTouchEvent, options);
+        touchArea.addEventListener("touchmove", handleTouchEvent, options);
+        touchArea.addEventListener("touchend", handleTouchEvent, options);
+        touchArea.addEventListener("touchcancel", handleTouchEvent, options);
+
+        var videoPlayerCounter = 0;
+
+        function openPromoVideo(playlist, index = 0) {
+            const videoPath = playlist[index];
+
+            touchArea.style.display = "none";
+            viewerOverlay.classList.remove("hidden");
+
+            viewerContent.innerHTML = `
+                <video id="promo-video" autoplay playsinline>
+                    <source src="${videoPath}" type="video/mp4">
+                </video>
+                <button id="promo-close">✕</button>
+            `;
+
+            const video = document.getElementById("promo-video");
+            const closeBtn = document.getElementById("promo-close");
+
+            video.play().catch((err) => {
+                console.log("Autoplay blocked, trying muted:", err);
+                video.muted = true;
+                video.play();
+            });
+
+            video.onended = () => {
+                if (videoPlayerCounter >= 1) {
+                    closePromo();
+                } else {
+                    videoPlayerCounter++;
+                    openPromoVideo(["output_video.mp4"]);
+                }
+            };
+
+            viewerOverlay.addEventListener("click", () => {
+                closeBtn.classList.add("visible");
+            });
+
+            closeBtn.addEventListener("click", closePromo);
+        }
+
+        function closePromo() {
+            isDoneScanning = false;
+            ws.send(JSON.stringify({ event: 'biometric_scan', status: 'idle', fingers_detected: fingerCount }));
+
+            viewerOverlay.classList.add("hidden");
+            viewerContent.innerHTML = "";
+            touchArea.style.display = "flex";
+
+            resetUI();
+            fingerCountElement.textContent = "0";
+
+            window.location.href = "tangan.html";
+        }
+    </script>
+</body>
+</html>

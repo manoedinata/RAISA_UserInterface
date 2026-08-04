@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>RAISA Voice Chat</title>
+
+    <style>
+        :root {
+            --neon-blue: #00d2ff;
+            --dark-bg: #050b14;
+            --cyan: #00ffff;
+            --danger: #ff3355;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--dark-bg);
+            background-image:
+                linear-gradient(rgba(0, 210, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 210, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--neon-blue);
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+
+        #voicePage {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #topbar {
+            height: 70px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: rgba(5, 11, 20, 0.92);
+            border-bottom: 1px solid rgba(0, 210, 255, 0.35);
+            box-shadow: 0 0 18px rgba(0, 210, 255, 0.15);
+            z-index: 10;
+        }
+
+        #title {
+            font-size: 1.35rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        #backBtn {
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            z-index: 100;
+            background: rgba(0, 210, 255, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            box-shadow:
+                0 0 10px rgba(0, 210, 255, 0.3),
+                inset 0 0 10px rgba(0, 210, 255, 0.1);
+            border-radius: 3px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        #backBtn:active {
+            background: var(--neon-blue);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        #reloadBtn {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            z-index: 100;
+            background: rgba(0, 210, 255, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            box-shadow:
+                0 0 10px rgba(0, 210, 255, 0.3),
+                inset 0 0 10px rgba(0, 210, 255, 0.1);
+            border-radius: 3px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        #reloadBtn:active {
+            background: var(--neon-blue);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        #frameWrapper {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #voiceFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+        }
+
+        #statusBadge {
+            position: absolute;
+            left: 25px;
+            bottom: 20px;
+            z-index: 20;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: var(--cyan);
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(0, 255, 255, 0.45);
+            border-radius: 5px;
+            text-shadow: 0 0 8px var(--cyan);
+            pointer-events: none;
+        }
+
+        #micHint {
+            position: absolute;
+            right: 25px;
+            bottom: 20px;
+            z-index: 20;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: var(--neon-blue);
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(0, 210, 255, 0.45);
+            border-radius: 5px;
+            text-shadow: 0 0 8px var(--neon-blue);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="voicePage">
+        <div id="topbar">
+            <button id="backBtn">◀ BACK</button>
+            <div id="title">RAISA VOICE CHAT</div>
+            <button id="reloadBtn">RELOAD</button>
+        </div>
+
+        <div id="frameWrapper">
+            <iframe id="voiceFrame" src="https://voice-chat-raisa.nabbit.id" allow="microphone; autoplay; clipboard-read; clipboard-write" referrerpolicy="no-referrer"></iframe>
+
+            <!-- <div id="statusBadge">VOICE CHAT ONLINE</div>
+            <div id="micHint">DEFAULT MICROPHONE</div> -->
+        </div>
+    </div>
+
+    <script src="./roslib.min.js"></script> -->
+    <script type="module" src="bridge.js"></script>
+    <script type="module" src="app.js"></script>
+    <!-- <script>
+        const backBtn = document.getElementById("backBtn");
+        const reloadBtn = document.getElementById("reloadBtn");
+        const voiceFrame = document.getElementById("voiceFrame");
+
+        // backBtn.addEventListener("click", () => {
+        //     const topic = safeTopic("/ui/mute_audio", "std_msgs/Int8");
+        //     if (topic) {
+        //         topic.publish({ data: 0 }); // unmute audio/BGM
+        //     } else {
+        //         alert("ROS belum terkoneksi ⚠️");
+        //     }
+
+        //     if (typeof restoreBGM === "function") {
+        //         restoreBGM();
+        //     }
+
+        //     setTimeout(() => {
+        //         window.location.href = "index.html";
+        //     }, 100);
+        // });
+
+        // reloadBtn.addEventListener("click", () => {
+        //     voiceFrame.src = voiceFrame.src;
+        //     muteBGM();
+        // });
+    </script> -->
+</body>
+
+</html>
