@@ -718,21 +718,37 @@ function renderMusicList() {
   }
 }
 
+// ==== STOP FUNCTION ====
+function stopMusic(li) {
+  document
+    .querySelectorAll(".music-item")
+    .forEach((el) => el.classList.remove("active"));
+
+  const stopItem =
+    li ||
+    [...musicList.children].find(
+      (item) => item.textContent === STOP_MUSIC_LABEL
+    );
+  if (stopItem) stopItem.classList.add("active");
+
+  bgmPlayer.pause();
+  bgmPlayer.removeAttribute("src");
+  bgmPlayer.load();
+  saveLastMusicPath(STOP_MUSIC_LABEL);
+  console.log("⏹️ Music stopped");
+}
+
 // ==== PLAY FUNCTION ====
 function playMusic(filePath, li) {
+  if (filePath === STOP_MUSIC_LABEL) {
+    stopMusic(li);
+    return;
+  }
+
   document
     .querySelectorAll(".music-item")
     .forEach((el) => el.classList.remove("active"));
   if (li) li.classList.add("active");
-
-  if (filePath === STOP_MUSIC_LABEL) {
-    bgmPlayer.pause();
-    bgmPlayer.removeAttribute("src");
-    bgmPlayer.load();
-    saveLastMusicPath("");
-    console.log("⏹️ Music stopped");
-    return;
-  }
 
   bgmPlayer.src = filePath;
   bgmPlayer.loop = true;
@@ -753,6 +769,11 @@ ipcRenderer.on("music-api-play", (_, musicName) => {
     console.warn(`⚠️ Music API mengirim nama yang tidak dikenal: ${musicName}`);
     return;
   }
+
+  // Simpan Stop Music ke last music dan hentikan musik sebelum memutar pilihan API
+  stopMusic();
+
+  if (filePath === STOP_MUSIC_LABEL) return;
 
   const listItem = [...musicList.children].find(
     (li) => li.textContent === musicName

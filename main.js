@@ -9,6 +9,7 @@ const { MUSIC_LIST, findMusicByName, getMusicName } = require("./music");
 const IP_FILE = "/home/raisa/ip_controller.txt";
 const LOCAL_API_PORT = 9999;
 let mainWindow = null;
+let rendererReady = false;
 const isDevelopment =
   process.env.NODE_ENV === "development" || process.argv.includes("--dev");
 
@@ -73,8 +74,13 @@ function createWindow() {
 
   win.webContents.setWindowOpenHandler(() => ({ action: "allow" }));
   mainWindow = win;
+  rendererReady = false;
+  win.webContents.on("did-finish-load", () => {
+    rendererReady = true;
+  });
   win.on("closed", () => {
     if (mainWindow === win) mainWindow = null;
+    rendererReady = false;
   });
 }
 
@@ -146,7 +152,7 @@ const localApiServer = http.createServer(async (req, res) => {
         return;
       }
 
-      if (!mainWindow || mainWindow.isDestroyed()) {
+      if (!mainWindow || mainWindow.isDestroyed() || !rendererReady) {
         sendJson(res, 503, { success: false, error: "Renderer belum siap" });
         return;
       }

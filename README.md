@@ -20,11 +20,34 @@ Status kedatangan dibaca dari `/communication/nav_status` (`std_msgs/Int8`). Nil
 
 Menu Navigasi tetap tersedia untuk memilih waypoint secara manual, tetapi loop otomatis hanya dikendalikan oleh buka/tutup video promo.
 
+## API Musik Lokal
+
+Proses Electron (`main.js`) menjalankan server HTTP lokal di `http://localhost:9999` untuk mengendalikan pemutaran musik latar. Server hanya mendengarkan di `localhost` sehingga tidak terekspos ke jaringan.
+
+Daftar musik didefinisikan sekali di `music.js` dan dipakai bersama oleh menu UI (`renderMusicList`) dan API, sehingga nama yang diterima API sama persis dengan yang ditampilkan di daftar musik.
+
+- `GET /api/music` mengembalikan daftar nama musik.
+
+  ```json
+  { "music": ["- - Stop Music - -", "rek-ayo-rek", "Hymne-ITS"] }
+  ```
+
+- `POST /api/music/play` memutar musik melalui `playMusic()` di `app.js`. Body JSON berisi `name` yang harus cocok dengan salah satu nama dari `GET /api/music`. Mengirim `"- - Stop Music - -"` menghentikan pemutaran.
+
+  ```bash
+  curl -X POST http://localhost:9999/api/music/play \
+    -H "Content-Type: application/json" \
+    -d '{"name": "Hymne-ITS"}'
+  ```
+
+  Respons: `202` dengan `{ "success": true, "name": "Hymne-ITS" }` bila diterima, `400` bila nama tidak valid (menyertakan daftar `music`), atau `503` bila renderer belum siap.
+
 ## Berkas utama
 
 - `index.html`: struktur halaman dan overlay.
 - `style.css`: tema dan layout layar sentuh.
 - `app.js`: interaksi UI, publisher, subscriber, dan state perjalanan.
+- `music.js`: katalog musik bersama (dipakai `app.js` dan `main.js`).
 - `bridge.js`: koneksi rosbridge dan mekanisme reconnect/resubscribe.
 - `pameran.html`: halaman display pameran mandiri berbasis Bootstrap dengan orb besar, ikon Lucide, dan transisi ikon/teks otomatis setiap lima detik.
 

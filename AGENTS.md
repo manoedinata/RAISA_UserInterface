@@ -6,6 +6,7 @@
 - Renderer markup and styles: `index.html`, `style.css`.
 - Renderer behavior and ROS integration: `app.js`.
 - Shared ROS connection wrapper: `bridge.js`.
+- Shared music catalog: `music.js`, imported by both `app.js` and `main.js` so the UI list and API stay in sync.
 - Standalone exhibition display: `pameran.html`; it uses Bootstrap 5.3.3 and Lucide 0.468.0 from CDNs.
 - Window modes are selected in `main.js`: `--dev` or `NODE_ENV=development` uses 640×960 windowed mode; the default production mode uses 1200×1920 fullscreen.
 
@@ -32,6 +33,15 @@
 - Manual waypoint selection remains available, but automatic loop controls are not exposed in the navigation menu.
 - The visitor greeting UI, face-detection subscription, greeting audio behavior, and visitor journey state have been removed.
 - Keep `README.md` and this file synchronized when behavior or topics change.
+
+## Local music API
+
+- `main.js` runs an HTTP server on `http://localhost:9999` (localhost only), sharing its port with the existing `/kill-chrome` endpoint.
+- `GET /api/music` returns `{ music: [...display names] }` derived from `MUSIC_LIST` in `music.js`.
+- `POST /api/music/play` accepts `{ "name": "<display name>" }`, validates it against the catalog, and forwards it to the renderer via the `music-api-play` IPC channel, which calls `playMusic()` in `app.js`.
+- Sending the `- - Stop Music - -` name stops playback. Names must match `GET /api/music` exactly (file basename without extension).
+- Responses: `202` accepted, `400` invalid name (includes the valid `music` list), `503` renderer not ready.
+- When editing the music catalog, change it only in `music.js`.
 
 ## Validation
 
