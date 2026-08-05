@@ -12,21 +12,18 @@
 
 - Use `safeSubscribe(name, type, callback)` for subscriptions so reconnects are handled.
 - Use `safeTopic(name, type)` or existing helper functions for publishing.
-- Visitor greeting topics and values:
-  - `/vision/face_detected`, `std_msgs/Int8`: `1` opens and `0` closes the greeting.
-  - `/ui/goto_waypoint`, `std_msgs/String`: `titikantar` and `titikjemput` destinations.
-  - `/communication/nav_status`, `std_msgs/Int8`: `1` means the active destination was reached.
+- `/ui/goto_waypoint`, `std_msgs/String`: accepts `titikantar`, `titikjemput`, and `cancel`.
+- `/communication/nav_status`, `std_msgs/Int8`: `1` means the active destination was reached.
 
-## Visitor greeting behavior
+## Promo navigation behavior
 
-- Ten taps on the **INTERAKSI** footer button within three seconds opens the greeting.
-- Opening the greeting plays `assets/sayaraisa.mp3` from the beginning; closing it stops and resets the audio.
-- The **Tidak terima kasih (Eksplor fitur RAISA)** action only closes the greeting; it does not block future openings.
-- Face detection is only processed while `currentPage === "konten"`, including during the automatic navigation loop; a face state of `0` closes the greeting without stopping navigation.
-- The **AUTO** navigation mode runs `titikjemput → titikantar` continuously, waiting five seconds at each arrival; **CANCEL** stops the loop.
-- Visitor navigation temporarily owns waypoint arrival handling when a visitor chooses the PT Optima route.
-- The journey state is maintained in `app.js`; only arrival events for an active visitor journey change its UI.
-- Returning Home closes the greeting but does not publish a navigation cancellation.
+- Opening the promo video starts or resumes the automatic `titikjemput → titikantar` loop.
+- The loop waits five seconds after each `/communication/nav_status = 1` arrival before publishing the opposite waypoint.
+- Closing the promo publishes `cancel`, clears the active wait timer, and preserves the pending target.
+- Reopening the promo republishes an interrupted target. If paused during an arrival wait, it restarts the five-second wait before continuing.
+- Promo video playback continues independently when ROS is unavailable; promo loop publications fail without blocking dialogs.
+- Manual waypoint selection remains available, but automatic loop controls are not exposed in the navigation menu.
+- The visitor greeting UI, face-detection subscription, greeting audio behavior, and visitor journey state have been removed.
 - Keep `README.md` and this file synchronized when behavior or topics change.
 
 ## Validation

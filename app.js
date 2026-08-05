@@ -35,11 +35,8 @@ function cleanupSocket() {
 const navButtons = document.querySelectorAll(".nav-btn[data-page]");
 const pages = document.querySelectorAll(".page");
 let currentPage = "konten";
-let visitorFaceDetected = false;
 
 function showPage(targetId) {
-  const previousPage = currentPage;
-
   pages.forEach((page) =>
     page.classList.toggle("active", page.id === targetId)
   );
@@ -47,10 +44,6 @@ function showPage(targetId) {
     btn.classList.toggle("active", btn.dataset.page === targetId)
   );
   currentPage = targetId;
-
-  if (previousPage !== "konten" && targetId === "konten") {
-    handleVisitorFaceDetection();
-  }
 }
 
 navButtons.forEach((btn) =>
@@ -374,6 +367,11 @@ document.addEventListener("click", (e) => {
 });
 
 function closeViewer() {
+  if (viewerOverlay.classList.contains("promo")) {
+    closePromo();
+    return;
+  }
+
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => { });
   }
@@ -432,7 +430,8 @@ const promoPlaylist = [
   // "assets/ROBOT AI_1.mp4",
   // "assets/TEASER 1 RAISA 2.0.mp4",
   // "assets/ROBOT robot anjing berkaki 4.mp4",
-  "assets/POG_GPFE.mp4"
+  "assets/POG_GPFE.mp4",
+  "assets/RAISA 2.0.mp4"
 ];
 // const promoPlaylist = [
 //   "assets/toyota_1.mp4",
@@ -447,6 +446,8 @@ promoBtn.addEventListener("click", () => openPromoVideo(promoPlaylist));
 function openPromoVideo(playlist, index = 0) {
   const viewer = viewerOverlay;
   const videoPath = playlist[index];
+
+  resumeNavigationLoop();
 
   viewer.classList.remove("hidden");
   viewer.classList.add("promo");
@@ -486,6 +487,7 @@ function openPromoVideo(playlist, index = 0) {
 }
 
 function closePromo() {
+  pauseNavigationLoop();
   viewerOverlay.classList.add("hidden");
   viewerOverlay.classList.remove("promo");
   viewerContent.innerHTML = "";
@@ -1067,17 +1069,15 @@ const navClose = document.getElementById("nav-close");
 const navProgressOverlay = document.getElementById("nav-progress-overlay");
 const navProgressTitle = document.getElementById("nav-progress-title");
 const navProgressCancel = document.getElementById("nav-progress-cancel");
-const navAuto = document.getElementById("nav-auto");
-const navCancel = document.getElementById("nav-cancel");
 
 const NAVIGATION_LOOP_WAIT_MS = 5000;
 let navigationLoopActive = false;
-let navigationLoopTarget = null;
+let navigationLoopTarget = "titikjemput";
+let navigationLoopWaiting = false;
 let navigationLoopWaitTimer = null;
 
 navProgressCancel.addEventListener("click", () => {
   sendWaypointToROS("cancel");
-  stopNavigationLoop();
   navProgressOverlay.classList.add("hidden");
   console.log("🛑 Waypoint canceled");
 });
@@ -1128,10 +1128,10 @@ async function loadWaypoints() {
 }
 
 // KIRIM NAMA WAYPOINT KE ROS2 (STRING)
-function sendWaypointToROS(name) {
+function sendWaypointToROS(name, showConnectionAlert = true) {
   const topic = safeTopic("/ui/goto_waypoint", "std_msgs/String");
   if (!topic) {
-    alert("ROS belum terkoneksi ⚠️");
+    if (showConnectionAlert) alert("ROS belum terkoneksi ⚠️");
     return false;
   }
 
@@ -1140,64 +1140,62 @@ function sendWaypointToROS(name) {
   return true;
 }
 
-// AUTO MODE
-navAuto.addEventListener("click", () => {
-  startNavigationLoop();
-  navOverlay.classList.add("hidden");
-});
+function pauseNavigationLoop() {
+  if (!navigationLoopActive) return;
 
-// CANCEL MODE
-navCancel.addEventListener("click", () => {
-  sendWaypointToROS("cancel");
-  stopNavigationLoop();
-  navOverlay.classList.add("hidden");
-  console.log("🛑 CANCEL dikirim");
-});
-
-function stopNavigationLoop() {
   navigationLoopActive = false;
-  navigationLoopTarget = null;
 
   if (navigationLoopWaitTimer) {
     clearTimeout(navigationLoopWaitTimer);
     navigationLoopWaitTimer = null;
   }
+
+  sendWaypointToROS("cancel", false);
+  console.log("⏸️ Navigation loop ditunda karena video promo ditutup");
 }
 
-function startNavigationLoop() {
-  stopNavigationLoop();
-
-  if (!sendWaypointToROS("titikjemput")) return;
+function resumeNavigationLoop() {
+  if (navigationLoopActive) return;
 
   navigationLoopActive = true;
-  navigationLoopTarget = "titikjemput";
-  navProgressTitle.textContent = "Robot sedang menuju titik jemput...";
-  navProgressOverlay.classList.remove("hidden");
-  console.log("🔁 Navigation loop dimulai: titikjemput");
+
+  if (navigationLoopWaiting) {
+    navigationLoopWaitTimer = setTimeout(() => {
+      navigationLoopWaitTimer = null;
+      continueNavigationLoop();
+    }, NAVIGATION_LOOP_WAIT_MS);
+    console.log("▶️ Navigation loop dilanjutkan setelah jeda");
+    return;
+  }
+
+  if (!sendWaypointToROS(navigationLoopTarget, false)) {
+    navigationLoopActive = false;
+    return;
+  }
+
+  console.log(`▶️ Navigation loop aktif: ${navigationLoopTarget}`);
 }
 
 function continueNavigationLoop() {
   if (!navigationLoopActive) return;
 
-  const nextTarget =
-    navigationLoopTarget === "titikjemput" ? "titikantar" : "titikjemput";
-
-  if (!sendWaypointToROS(nextTarget)) {
-    stopNavigationLoop();
+  if (!sendWaypointToROS(navigationLoopTarget, false)) {
+    navigationLoopActive = false;
     return;
   }
 
-  navigationLoopTarget = nextTarget;
-  navProgressTitle.textContent = `Robot sedang menuju ${nextTarget}...`;
-  console.log(`🔁 Navigation loop berlanjut: ${nextTarget}`);
+  navigationLoopWaiting = false;
+  console.log(`🔁 Navigation loop berlanjut: ${navigationLoopTarget}`);
 }
 
 function handleNavigationLoopArrival() {
   if (!navigationLoopActive || navigationLoopWaitTimer) return;
 
-  navProgressTitle.textContent =
-    `Robot sudah sampai di ${navigationLoopTarget}. Menunggu 5 detik...`;
-  console.log(`⏳ Tiba di ${navigationLoopTarget}; menunggu 5 detik`);
+  const arrivedTarget = navigationLoopTarget;
+  navigationLoopTarget =
+    arrivedTarget === "titikjemput" ? "titikantar" : "titikjemput";
+  navigationLoopWaiting = true;
+  console.log(`⏳ Tiba di ${arrivedTarget}; menunggu 5 detik`);
 
   navigationLoopWaitTimer = setTimeout(() => {
     navigationLoopWaitTimer = null;
@@ -1211,208 +1209,7 @@ safeSubscribe("/communication/nav_status", "std_msgs/Int8", (msg) => {
     sendWaypointToROS("cancel");
     navProgressTitle.textContent = `Robot telah sampai di lokasi tujuan!`;
     handleNavigationLoopArrival();
-    handleVisitorNavigationArrival();
   }
-});
-
-// =============================================================================
-// 👋 SAPA PENGUNJUNG
-// =============================================================================
-
-const visitorGreetingOverlay = document.getElementById("visitor-greeting-overlay");
-const visitorGreetingTitle = document.getElementById("visitor-greeting-title");
-const visitorGreetingMessage = document.getElementById("visitor-greeting-message");
-const visitorInitialActions = document.getElementById("visitor-initial-actions");
-const visitorArrivalActions = document.getElementById("visitor-arrival-actions");
-const visitorNavigationActions = document.getElementById("visitor-navigation-actions");
-const visitorGuideBtn = document.getElementById("visitor-guide-btn");
-const visitorDeclineBtn = document.getElementById("visitor-decline-btn");
-const visitorReturnPickupBtn = document.getElementById("visitor-return-pickup-btn");
-const visitorArrivalHomeBtn = document.getElementById("visitor-arrival-home-btn");
-const visitorNavigationHomeBtn = document.getElementById("visitor-navigation-home-btn");
-const interactionBtn = document.querySelector('.nav-btn[data-page="lain"]');
-const visitorGreetingAudio = new Audio("assets/sayaraisa.mp3");
-visitorGreetingAudio.preload = "auto";
-
-const VISITOR_INITIAL_MESSAGE =
-  "Halo! Saya Robot asisten RAISA siap membantu. Apakah Anda ingin saya antar ke lokasi PT. Performa Optima Group?";
-const VISITOR_TAP_TARGET = 10;
-const VISITOR_TAP_WINDOW_MS = 3000;
-const VISITOR_ARRIVAL_GUARD_MS = 1000;
-
-let visitorJourneyStage = "idle";
-let visitorNavigationStartedAt = 0;
-let visitorTapCount = 0;
-let visitorTapTimer = null;
-let visitorNavigationActive = false;
-let visitorAutoReturnTimer = null;
-
-function setVisitorActionGroup(activeGroup) {
-  [visitorInitialActions, visitorArrivalActions, visitorNavigationActions].forEach(
-    (group) => group.classList.toggle("hidden", group !== activeGroup)
-  );
-}
-
-function resetVisitorGreeting() {
-  visitorJourneyStage = "idle";
-  visitorNavigationStartedAt = 0;
-  visitorGreetingTitle.textContent = "Selamat datang";
-  visitorGreetingMessage.textContent = VISITOR_INITIAL_MESSAGE;
-  setVisitorActionGroup(visitorInitialActions);
-}
-
-function openVisitorGreeting() {
-  if (
-    !visitorGreetingOverlay.classList.contains("hidden")
-  ) {
-    return;
-  }
-
-  resetVisitorGreeting();
-  visitorGreetingOverlay.classList.remove("hidden");
-  visitorGreetingAudio.currentTime = 0;
-  visitorGreetingAudio.play().catch((error) => {
-    console.warn("⚠️ Audio sapaan tidak dapat diputar:", error);
-  });
-}
-
-function closeVisitorGreeting() {
-  visitorGreetingAudio.pause();
-  visitorGreetingAudio.currentTime = 0;
-  visitorGreetingOverlay.classList.add("hidden");
-  resetVisitorGreeting();
-  showPage("konten");
-}
-
-function startVisitorNavigation(waypoint, stage, title, message) {
-  // clear any pending auto-return when a new navigation starts
-  if (visitorAutoReturnTimer) {
-    clearTimeout(visitorAutoReturnTimer);
-    visitorAutoReturnTimer = null;
-  }
-
-  // Visitor navigation temporarily owns the waypoint status events.
-  stopNavigationLoop();
-
-  if (!sendWaypointToROS(waypoint)) return;
-
-  visitorNavigationActive = true;
-  visitorJourneyStage = stage;
-  visitorNavigationStartedAt = Date.now();
-  visitorGreetingTitle.textContent = title;
-  visitorGreetingMessage.textContent = message;
-  setVisitorActionGroup(visitorNavigationActions);
-}
-
-function handleVisitorNavigationArrival() {
-  if (
-    !visitorNavigationActive ||
-    visitorJourneyStage === "idle" ||
-    Date.now() - visitorNavigationStartedAt < VISITOR_ARRIVAL_GUARD_MS
-  ) {
-    return;
-  }
-
-  if (visitorJourneyStage === "to-dropoff") {
-    visitorNavigationActive = false;
-    visitorJourneyStage = "at-dropoff";
-    visitorGreetingTitle.textContent = "Tujuan tercapai";
-    visitorGreetingMessage.textContent = "Robot sudah sampai di titik antar.";
-    setVisitorActionGroup(visitorArrivalActions);
-    // schedule automatic return to pickup after 5 seconds
-    if (visitorAutoReturnTimer) clearTimeout(visitorAutoReturnTimer);
-    visitorAutoReturnTimer = setTimeout(() => {
-      // only trigger if still at-dropoff and no navigation active
-      if (visitorJourneyStage === "at-dropoff" && !visitorNavigationActive) {
-        console.log("⏱️ Auto-return: mengirim titikjemput setelah tiba di titik antar");
-        // reuse startVisitorNavigation to set states
-        if (sendWaypointToROS("titikjemput")) {
-          visitorNavigationActive = true;
-          visitorJourneyStage = "to-pickup";
-          visitorNavigationStartedAt = Date.now();
-          visitorGreetingTitle.textContent = "Kembali ke Titik Jemput";
-          visitorGreetingMessage.textContent = "Robot sedang kembali menuju titik jemput.";
-          setVisitorActionGroup(visitorNavigationActions);
-        }
-      }
-      visitorAutoReturnTimer = null;
-    }, 5000);
-    return;
-  }
-
-  if (visitorJourneyStage === "to-pickup") {
-    visitorNavigationActive = false;
-    closeVisitorGreeting();
-  }
-}
-
-function handleVisitorFaceDetection() {
-  if (currentPage !== "konten") return;
-
-  if (visitorFaceDetected) {
-    openVisitorGreeting();
-  } else {
-    if (!visitorGreetingOverlay.classList.contains("hidden")) {
-      closeVisitorGreeting();
-    }
-  }
-}
-
-visitorGuideBtn.addEventListener("click", () => {
-  startVisitorNavigation(
-    "titikantar",
-    "to-dropoff",
-    "Menuju PT Optima Group",
-    "Robot sedang menuju titik antar. Silakan ikuti Robot RAISA."
-  );
-});
-
-visitorReturnPickupBtn.addEventListener("click", () => {
-  // user-triggered return should cancel auto-return timer
-  if (visitorAutoReturnTimer) {
-    clearTimeout(visitorAutoReturnTimer);
-    visitorAutoReturnTimer = null;
-  }
-
-  startVisitorNavigation(
-    "titikjemput",
-    "to-pickup",
-    "Kembali ke Titik Jemput",
-    "Robot sedang kembali menuju titik jemput."
-  );
-});
-
-visitorDeclineBtn.addEventListener("click", () => {
-  closeVisitorGreeting();
-});
-
-visitorArrivalHomeBtn.addEventListener("click", closeVisitorGreeting);
-visitorNavigationHomeBtn.addEventListener("click", () => {
-  closeVisitorGreeting();
-});
-
-// 10 tap pada tombol Interaksi dalam 3 detik.
-interactionBtn.addEventListener("click", () => {
-  visitorTapCount++;
-
-  if (!visitorTapTimer) {
-    visitorTapTimer = setTimeout(() => {
-      visitorTapCount = 0;
-      visitorTapTimer = null;
-    }, VISITOR_TAP_WINDOW_MS);
-  }
-
-  if (visitorTapCount >= VISITOR_TAP_TARGET) {
-    openVisitorGreeting();
-    visitorTapCount = 0;
-    clearTimeout(visitorTapTimer);
-    visitorTapTimer = null;
-  }
-});
-
-safeSubscribe("/vision/face_detected", "std_msgs/Int8", (msg) => {
-  visitorFaceDetected = Number(msg.data) === 1;
-  handleVisitorFaceDetection();
 });
 
 //// ================= WI-FI MENU =================
