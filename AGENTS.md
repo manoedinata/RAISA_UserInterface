@@ -6,7 +6,14 @@
 - Renderer markup and styles: `index.html`, `style.css`.
 - Renderer behavior and ROS integration: `app.js`.
 - Shared ROS connection wrapper: `bridge.js`.
+- Standalone exhibition display: `pameran.html`; it uses Bootstrap 5.3.3 and Lucide 0.468.0 from CDNs.
 - Window modes are selected in `main.js`: `--dev` or `NODE_ENV=development` uses 640×960 windowed mode; the default production mode uses 1200×1920 fullscreen.
+
+## Exhibition display
+
+- `pameran.html` is UI-only and is not connected to ROS or WebSocket.
+- It cycles through four demo icon/text states every five seconds with animated transitions and reduced-motion support.
+- Keep future remote display-state handling separate from the visual transition functions until WebSocket behavior is implemented.
 
 ## ROS conventions
 

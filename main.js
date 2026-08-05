@@ -4,8 +4,11 @@ const fs = require("fs");
 
 const http = require('http');
 const { exec } = require("child_process");
+const { MUSIC_LIST, findMusicByName, getMusicName } = require("./music");
 
 const IP_FILE = "/home/raisa/ip_controller.txt";
+const LOCAL_API_PORT = 9999;
+let mainWindow = null;
 const isDevelopment =
   process.env.NODE_ENV === "development" || process.argv.includes("--dev");
 
@@ -69,6 +72,10 @@ function createWindow() {
   win.loadFile("index.html");
 
   win.webContents.setWindowOpenHandler(() => ({ action: "allow" }));
+  mainWindow = win;
+  win.on("closed", () => {
+    if (mainWindow === win) mainWindow = null;
+  });
 }
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
@@ -80,10 +87,77 @@ app.commandLine.appendSwitch("enable-gpu-rasterization");
 app.commandLine.appendSwitch("enable-zero-copy");
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
-// Create a tiny local server inside Electron
-const killServer = http.createServer((req, res) => {
-  // Set CORS headers so Chrome is allowed to talk to it
+function sendJson(res, statusCode, payload) {
+  res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(payload));
+}
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 16 * 1024) {
+        reject(new Error("Request body terlalu besar"));
+        req.destroy();
+      }
+    });
+    req.on("end", () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch (_) {
+        reject(new Error("Body harus berupa JSON yang valid"));
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+// Local HTTP API inside Electron
+const localApiServer = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  const requestUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+
+  if (requestUrl.pathname === '/api/music' && req.method === 'GET') {
+    sendJson(res, 200, { music: MUSIC_LIST.map(getMusicName) });
+    return;
+  }
+
+  if (requestUrl.pathname === '/api/music/play' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const musicName = typeof body.name === "string" ? body.name.trim() : "";
+      if (!musicName || !findMusicByName(musicName)) {
+        sendJson(res, 400, {
+          success: false,
+          error: "Nama musik tidak valid",
+          music: MUSIC_LIST.map(getMusicName),
+        });
+        return;
+      }
+
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        sendJson(res, 503, { success: false, error: "Renderer belum siap" });
+        return;
+      }
+
+      mainWindow.webContents.send("music-api-play", musicName);
+      sendJson(res, 202, { success: true, name: musicName });
+    } catch (error) {
+      sendJson(res, 400, { success: false, error: error.message });
+    }
+    return;
+  }
 
   if (req.url === '/kill-chrome' && req.method === 'POST') {
     console.log("🛑 Received command to close Chrome. Terminating...");
@@ -99,9 +173,8 @@ const killServer = http.createServer((req, res) => {
   }
 });
 
-// Start listening on port 9999
-killServer.listen(9999, 'localhost', () => {
-  console.log("🎧 Chrome Kill Server listening on port 9999");
+localApiServer.listen(LOCAL_API_PORT, 'localhost', () => {
+  console.log(`🎧 Local API listening on http://localhost:${LOCAL_API_PORT}`);
 });
 
 app.whenReady().then(() => {

@@ -628,6 +628,12 @@ function updateBatteryUI(percent) {
 
 const fs = require("fs");
 const path = require("path");
+const {
+  MUSIC_LIST,
+  STOP_MUSIC_LABEL,
+  findMusicByName,
+  getMusicName,
+} = require("./music");
 
 // Lokasi buffer file
 const bufferPath = path.join(__dirname, "music_last.txt");
@@ -650,26 +656,6 @@ function getLastMusicPath() {
   const data = fs.readFileSync(bufferPath, "utf-8").trim();
   return data.length > 0 ? data : null;
 }
-
-// ==== DAFTAR MUSIK ====
-const MUSIC_LIST = [
-  //  src/electron_ui/assets/music/music-rek-ayo-rek.mp3
-  "- - Stop Music - -",
-  "assets/music/rek-ayo-rek.mp3",
-  "assets/music/Foreplay-Fourplay-Cultura-Jazz.mp3",
-  "assets/music/Hymne-ITS.mp3",
-  "assets/music/IBU-PERTIWI.mp3",
-  "assets/music/Jazz-Music.mp3",
-  "assets/music/Liebesleid-(Love's-Sorrow)-Kreisler-Rousseau.mp3",
-  "assets/music/Max-O-Man-Fourplay-Cultura-Jazz.mp3",
-  "assets/music/Ampar Ampar pisang.mp3",
-  "assets/music/Sinners-Finale.mp3",
-  "assets/music/Yamko Rambe Yamko.mp3",
-  "assets/music/Buruh-Tani.mp3",
-  "assets/music/Nod Krai.mp3",
-  "assets/music/mbg.mp3",
-  // Tambahkan musik lain di sini
-];
 
 // ==== ELEMENT DOM ====
 const musicOverlay = document.getElementById("music-overlay");
@@ -712,16 +698,13 @@ musicClose.addEventListener("click", () => {
 // ==== RENDER LIST LAGU ====
 function renderMusicList() {
   musicList.innerHTML = "";
-  MUSIC_LIST.forEach((path) => {
-    const name = path
-      .split("/")
-      .pop()
-      .replace(/\.[^/.]+$/, "");
+  MUSIC_LIST.forEach((filePath) => {
+    const name = getMusicName(filePath);
     const li = document.createElement("li");
     li.textContent = name;
     li.classList.add("music-item");
 
-    li.addEventListener("click", () => playMusic(path, li));
+    li.addEventListener("click", () => playMusic(filePath, li));
     musicList.appendChild(li);
   });
 
@@ -729,12 +712,7 @@ function renderMusicList() {
   const last = getLastMusicPath();
   if (last) {
     const lastLi = [...musicList.children].find(
-      (li) =>
-        li.textContent ===
-        last
-          .split("/")
-          .pop()
-          .replace(/\.[^/.]+$/, "")
+      (li) => li.textContent === getMusicName(last)
     );
     if (lastLi) lastLi.classList.add("active");
   }
@@ -742,6 +720,20 @@ function renderMusicList() {
 
 // ==== PLAY FUNCTION ====
 function playMusic(filePath, li) {
+  document
+    .querySelectorAll(".music-item")
+    .forEach((el) => el.classList.remove("active"));
+  if (li) li.classList.add("active");
+
+  if (filePath === STOP_MUSIC_LABEL) {
+    bgmPlayer.pause();
+    bgmPlayer.removeAttribute("src");
+    bgmPlayer.load();
+    saveLastMusicPath("");
+    console.log("⏹️ Music stopped");
+    return;
+  }
+
   bgmPlayer.src = filePath;
   bgmPlayer.loop = true;
   bgmPlayer.volume = 0.7;
@@ -750,16 +742,23 @@ function playMusic(filePath, li) {
     console.warn("⚠️ Autoplay blocked:", err);
   });
 
-  // update UI
-  document
-    .querySelectorAll(".music-item")
-    .forEach((el) => el.classList.remove("active"));
-  if (li) li.classList.add("active");
-
   // simpan ke file buffer
   saveLastMusicPath(filePath);
   console.log(`🎧 Playing ${filePath}`);
 }
+
+ipcRenderer.on("music-api-play", (_, musicName) => {
+  const filePath = findMusicByName(musicName);
+  if (!filePath) {
+    console.warn(`⚠️ Music API mengirim nama yang tidak dikenal: ${musicName}`);
+    return;
+  }
+
+  const listItem = [...musicList.children].find(
+    (li) => li.textContent === musicName
+  );
+  playMusic(filePath, listItem || null);
+});
 
 // ==== AUTOPLAY SAAT UI DIBUKA ====
 window.addEventListener("DOMContentLoaded", () => {

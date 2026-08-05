@@ -26,3 +26,8 @@ Menu Navigasi tetap tersedia untuk memilih waypoint secara manual, tetapi loop o
 - `style.css`: tema dan layout layar sentuh.
 - `app.js`: interaksi UI, publisher, subscriber, dan state perjalanan.
 - `bridge.js`: koneksi rosbridge dan mekanisme reconnect/resubscribe.
+- `pameran.html`: halaman display pameran mandiri berbasis Bootstrap dengan orb besar, ikon Lucide, dan transisi ikon/teks otomatis setiap lima detik.
+
+## Display Pameran
+
+`pameran.html` saat ini hanya mengimplementasikan UI dan tidak terhubung ke ROS atau WebSocket. Halaman menampilkan empat state contoh (suara, percakapan, musik, dan wajah) untuk mendemonstrasikan animasi transisi. Bootstrap 5.3.3 dan Lucide 0.468.0 dimuat dari CDN, sehingga koneksi internet diperlukan agar styling Bootstrap dan ikon tersedia.
