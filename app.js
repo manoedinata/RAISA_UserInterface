@@ -34,8 +34,11 @@ function cleanupSocket() {
 const navButtons = document.querySelectorAll(".nav-btn[data-page]");
 const pages = document.querySelectorAll(".page");
 let currentPage = "konten";
+let visitorFaceDetected = false;
 
 function showPage(targetId) {
+  const previousPage = currentPage;
+
   pages.forEach((page) =>
     page.classList.toggle("active", page.id === targetId)
   );
@@ -43,6 +46,10 @@ function showPage(targetId) {
     btn.classList.toggle("active", btn.dataset.page === targetId)
   );
   currentPage = targetId;
+
+  if (previousPage !== "konten" && targetId === "konten") {
+    handleVisitorFaceDetection();
+  }
 }
 
 navButtons.forEach((btn) =>
@@ -419,11 +426,12 @@ document.getElementById("camera-btn").addEventListener("click", () => {
 // =============================================================================
 
 const promoPlaylist = [
-  "assets/profile_rs.mp4",
+  // "assets/profile_rs.mp4",
   // "assets/RAISA_1.mp4",
   // "assets/ROBOT AI_1.mp4",
   // "assets/TEASER 1 RAISA 2.0.mp4",
   // "assets/ROBOT robot anjing berkaki 4.mp4",
+  "assets/POG_GPFE.mp4"
 ];
 // const promoPlaylist = [
 //   "assets/toyota_1.mp4",
@@ -1174,11 +1182,14 @@ const VISITOR_INITIAL_MESSAGE =
 const VISITOR_TAP_TARGET = 10;
 const VISITOR_TAP_WINDOW_MS = 3000;
 const VISITOR_ARRIVAL_GUARD_MS = 1000;
+const VISITOR_DECLINE_COOLDOWN_MS = 5 * 60 * 1000;
 
 let visitorJourneyStage = "idle";
 let visitorNavigationStartedAt = 0;
 let visitorTapCount = 0;
 let visitorTapTimer = null;
+let visitorDeclineCooldownTimer = null;
+let visitorNavigationActive = false;
 
 function setVisitorActionGroup(activeGroup) {
   [visitorInitialActions, visitorArrivalActions, visitorNavigationActions].forEach(
@@ -1195,7 +1206,13 @@ function resetVisitorGreeting() {
 }
 
 function openVisitorGreeting() {
-  if (!visitorGreetingOverlay.classList.contains("hidden")) return;
+  if (
+    !visitorGreetingOverlay.classList.contains("hidden") ||
+    visitorDeclineCooldownTimer ||
+    visitorNavigationActive
+  ) {
+    return;
+  }
 
   resetVisitorGreeting();
   visitorGreetingOverlay.classList.remove("hidden");
@@ -1213,9 +1230,29 @@ function closeVisitorGreeting() {
   showPage("konten");
 }
 
+function startVisitorDeclineCooldown() {
+  if (visitorDeclineCooldownTimer) {
+    clearTimeout(visitorDeclineCooldownTimer);
+  }
+
+  visitorDeclineCooldownTimer = setTimeout(() => {
+    visitorDeclineCooldownTimer = null;
+    console.log("👋 Cooldown menu sapa selesai");
+  }, VISITOR_DECLINE_COOLDOWN_MS);
+}
+
+function cancelVisitorDeclineCooldown() {
+  if (!visitorDeclineCooldownTimer) return;
+
+  clearTimeout(visitorDeclineCooldownTimer);
+  visitorDeclineCooldownTimer = null;
+  console.log("👋 Cooldown menu sapa dibatalkan karena wajah tidak terdeteksi");
+}
+
 function startVisitorNavigation(waypoint, stage, title, message) {
   if (!sendWaypointToROS(waypoint)) return;
 
+  visitorNavigationActive = true;
   visitorJourneyStage = stage;
   visitorNavigationStartedAt = Date.now();
   visitorGreetingTitle.textContent = title;
@@ -1225,6 +1262,7 @@ function startVisitorNavigation(waypoint, stage, title, message) {
 
 function handleVisitorNavigationArrival() {
   if (
+    !visitorNavigationActive ||
     visitorJourneyStage === "idle" ||
     Date.now() - visitorNavigationStartedAt < VISITOR_ARRIVAL_GUARD_MS
   ) {
@@ -1232,6 +1270,7 @@ function handleVisitorNavigationArrival() {
   }
 
   if (visitorJourneyStage === "to-dropoff") {
+    visitorNavigationActive = false;
     visitorJourneyStage = "at-dropoff";
     visitorGreetingTitle.textContent = "Tujuan tercapai";
     visitorGreetingMessage.textContent = "Robot sudah sampai di titik antar.";
@@ -1240,7 +1279,21 @@ function handleVisitorNavigationArrival() {
   }
 
   if (visitorJourneyStage === "to-pickup") {
+    visitorNavigationActive = false;
     closeVisitorGreeting();
+  }
+}
+
+function handleVisitorFaceDetection() {
+  if (currentPage !== "konten" || visitorNavigationActive) return;
+
+  if (visitorFaceDetected) {
+    openVisitorGreeting();
+  } else {
+    cancelVisitorDeclineCooldown();
+    if (!visitorGreetingOverlay.classList.contains("hidden")) {
+      closeVisitorGreeting();
+    }
   }
 }
 
@@ -1262,9 +1315,15 @@ visitorReturnPickupBtn.addEventListener("click", () => {
   );
 });
 
-[visitorDeclineBtn, visitorArrivalHomeBtn, visitorNavigationHomeBtn].forEach(
-  (button) => button.addEventListener("click", closeVisitorGreeting)
-);
+visitorDeclineBtn.addEventListener("click", () => {
+  startVisitorDeclineCooldown();
+  closeVisitorGreeting();
+});
+
+visitorArrivalHomeBtn.addEventListener("click", closeVisitorGreeting);
+visitorNavigationHomeBtn.addEventListener("click", () => {
+  closeVisitorGreeting();
+});
 
 // 10 tap pada tombol Interaksi dalam 3 detik.
 interactionBtn.addEventListener("click", () => {
@@ -1286,13 +1345,8 @@ interactionBtn.addEventListener("click", () => {
 });
 
 safeSubscribe("/vision/face_detected", "std_msgs/Int8", (msg) => {
-  const faceDetected = Number(msg.data) === 1;
-
-  if (faceDetected) {
-    openVisitorGreeting();
-  } else if (!visitorGreetingOverlay.classList.contains("hidden")) {
-    closeVisitorGreeting();
-  }
+  visitorFaceDetected = Number(msg.data) === 1;
+  handleVisitorFaceDetection();
 });
 
 //// ================= WI-FI MENU =================
