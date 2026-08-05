@@ -21,9 +21,10 @@
 
 - Ten taps on the **INTERAKSI** footer button within three seconds opens the greeting.
 - Opening the greeting plays `assets/sayaraisa.mp3` from the beginning; closing it stops and resets the audio.
-- The **Tidak terima kasih (Eksplor fitur RAISA)** action blocks reopening for ten minutes; `/vision/face_detected = 0` cancels that cooldown immediately.
-- Face detection events are ignored while an active visitor journey is navigating to `titikantar` or `titikjemput`; detection resumes after arrival.
-- Face detection is only processed while `currentPage === "konten"`; retain the latest face state and evaluate it when returning to Konten.
+- The **Tidak terima kasih (Eksplor fitur RAISA)** action only closes the greeting; it does not block future openings.
+- Face detection is only processed while `currentPage === "konten"`, including during the automatic navigation loop; a face state of `0` closes the greeting without stopping navigation.
+- The **AUTO** navigation mode runs `titikjemput → titikantar` continuously, waiting five seconds at each arrival; **CANCEL** stops the loop.
+- Visitor navigation temporarily owns waypoint arrival handling when a visitor chooses the PT Optima route.
 - The journey state is maintained in `app.js`; only arrival events for an active visitor journey change its UI.
 - Returning Home closes the greeting but does not publish a navigation cancellation.
 - Keep `README.md` and this file synchronized when behavior or topics change.

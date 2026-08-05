@@ -12,11 +12,13 @@ Mode development juga dapat diaktifkan dengan environment variable `NODE_ENV=dev
 
 ## Menu Sapa Pengunjung
 
-Menu layar penuh dapat dibuka dengan 10 kali tap tombol **INTERAKSI** dalam 3 detik atau ketika topic ROS `/vision/face_detected` (`std_msgs/Int8`) bernilai `1`. Saat menu dibuka, audio `assets/sayaraisa.mp3` diputar dari awal. Nilai `0` menghentikan audio, menutup menu, membatalkan cooldown, dan mengembalikan UI ke halaman **KONTEN**.
+Menu layar penuh dapat dibuka dengan 10 kali tap tombol **INTERAKSI** dalam 3 detik atau ketika topic ROS `/vision/face_detected` (`std_msgs/Int8`) bernilai `1`. Saat menu dibuka, audio `assets/sayaraisa.mp3` diputar dari awal. Nilai `0` menghentikan audio, menutup menu, dan mengembalikan UI ke halaman **KONTEN**.
 
-Jika pengunjung menekan **Tidak terima kasih (Eksplor fitur RAISA)**, menu ditutup dan tidak dapat dibuka kembali selama 10 menit. Cooldown berakhir lebih cepat jika `/vision/face_detected` mengirim nilai `0`; kondisi yang terjadi lebih dahulu yang berlaku.
+Jika pengunjung menekan **Tidak terima kasih (Eksplor fitur RAISA)**, menu hanya ditutup dan dapat dibuka kembali melalui trigger yang tersedia.
 
-Deteksi wajah hanya diproses ketika halaman aktif adalah **KONTEN**. Nilai wajah terakhir tetap disimpan; ketika user kembali ke **KONTEN**, nilai tersebut diproses kembali. Selama navigasi pengunjung menuju `titikantar` atau `titikjemput`, event `/vision/face_detected` diabaikan. Deteksi wajah aktif kembali setelah `/communication/nav_status = 1` menandakan tujuan tercapai.
+Deteksi wajah hanya diproses ketika halaman aktif adalah **KONTEN**, termasuk saat robot sedang menjalankan loop navigasi. Nilai wajah terakhir tetap disimpan; ketika user kembali ke **KONTEN**, nilai tersebut diproses kembali. Jika wajah tidak terdeteksi, page Sapa ditutup tetapi loop navigasi tetap berjalan.
+
+Mode **AUTO** pada menu Navigasi menjalankan loop `titikjemput → tunggu 5 detik → titikantar → tunggu 5 detik` secara terus-menerus. Mode ini dapat dihentikan dengan tombol **CANCEL**. Jika pengunjung memilih pengantaran ke PT Optima Group, navigasi pengunjung mengambil alih sementara status navigasi loop.
 
 Alur navigasi:
 

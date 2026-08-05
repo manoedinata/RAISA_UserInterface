@@ -8,7 +8,8 @@ const ASSETS_PATH = "assets/";
 // const ROS_IP = "10.7.101.238"; // ganti sesuai kebutuhan
 // const ROS_IP = "10.42.0.166"; // ganti sesuai kebutuhan
 // const ROS_IP = "10.209.100.3"; // ganti sesuai kebutuhan
-const ROS_IP = "192.168.0.193"; // ganti sesuai kebutuhan
+// const ROS_IP = "192.168.0.193"; // ganti sesuai kebutuhan
+const ROS_IP = "10.91.54.3";
 
 import { safeSubscribe, safeTopic } from "./bridge.js";
 const { shell } = require("electron");
@@ -1066,9 +1067,17 @@ const navClose = document.getElementById("nav-close");
 const navProgressOverlay = document.getElementById("nav-progress-overlay");
 const navProgressTitle = document.getElementById("nav-progress-title");
 const navProgressCancel = document.getElementById("nav-progress-cancel");
+const navAuto = document.getElementById("nav-auto");
+const navCancel = document.getElementById("nav-cancel");
+
+const NAVIGATION_LOOP_WAIT_MS = 5000;
+let navigationLoopActive = false;
+let navigationLoopTarget = null;
+let navigationLoopWaitTimer = null;
 
 navProgressCancel.addEventListener("click", () => {
   sendWaypointToROS("cancel");
+  stopNavigationLoop();
   navProgressOverlay.classList.add("hidden");
   console.log("🛑 Waypoint canceled");
 });
@@ -1131,29 +1140,77 @@ function sendWaypointToROS(name) {
   return true;
 }
 
-// Tombol AUTO & CANCEL
-const navAuto = document.getElementById("nav-auto");
-const navCancel = document.getElementById("nav-cancel");
-
 // AUTO MODE
 navAuto.addEventListener("click", () => {
-  sendWaypointToROS("auto");
+  startNavigationLoop();
   navOverlay.classList.add("hidden");
-  console.log("🤖 AUTO mode dikirim");
 });
 
 // CANCEL MODE
 navCancel.addEventListener("click", () => {
   sendWaypointToROS("cancel");
+  stopNavigationLoop();
   navOverlay.classList.add("hidden");
   console.log("🛑 CANCEL dikirim");
 });
+
+function stopNavigationLoop() {
+  navigationLoopActive = false;
+  navigationLoopTarget = null;
+
+  if (navigationLoopWaitTimer) {
+    clearTimeout(navigationLoopWaitTimer);
+    navigationLoopWaitTimer = null;
+  }
+}
+
+function startNavigationLoop() {
+  stopNavigationLoop();
+
+  if (!sendWaypointToROS("titikjemput")) return;
+
+  navigationLoopActive = true;
+  navigationLoopTarget = "titikjemput";
+  navProgressTitle.textContent = "Robot sedang menuju titik jemput...";
+  navProgressOverlay.classList.remove("hidden");
+  console.log("🔁 Navigation loop dimulai: titikjemput");
+}
+
+function continueNavigationLoop() {
+  if (!navigationLoopActive) return;
+
+  const nextTarget =
+    navigationLoopTarget === "titikjemput" ? "titikantar" : "titikjemput";
+
+  if (!sendWaypointToROS(nextTarget)) {
+    stopNavigationLoop();
+    return;
+  }
+
+  navigationLoopTarget = nextTarget;
+  navProgressTitle.textContent = `Robot sedang menuju ${nextTarget}...`;
+  console.log(`🔁 Navigation loop berlanjut: ${nextTarget}`);
+}
+
+function handleNavigationLoopArrival() {
+  if (!navigationLoopActive || navigationLoopWaitTimer) return;
+
+  navProgressTitle.textContent =
+    `Robot sudah sampai di ${navigationLoopTarget}. Menunggu 5 detik...`;
+  console.log(`⏳ Tiba di ${navigationLoopTarget}; menunggu 5 detik`);
+
+  navigationLoopWaitTimer = setTimeout(() => {
+    navigationLoopWaitTimer = null;
+    continueNavigationLoop();
+  }, NAVIGATION_LOOP_WAIT_MS);
+}
 
 safeSubscribe("/communication/nav_status", "std_msgs/Int8", (msg) => {
   if (msg.data === 1) {
     // navProgressOverlay.classList.add("hidden");
     sendWaypointToROS("cancel");
     navProgressTitle.textContent = `Robot telah sampai di lokasi tujuan!`;
+    handleNavigationLoopArrival();
     handleVisitorNavigationArrival();
   }
 });
@@ -1182,13 +1239,11 @@ const VISITOR_INITIAL_MESSAGE =
 const VISITOR_TAP_TARGET = 10;
 const VISITOR_TAP_WINDOW_MS = 3000;
 const VISITOR_ARRIVAL_GUARD_MS = 1000;
-const VISITOR_DECLINE_COOLDOWN_MS = 5 * 60 * 1000;
 
 let visitorJourneyStage = "idle";
 let visitorNavigationStartedAt = 0;
 let visitorTapCount = 0;
 let visitorTapTimer = null;
-let visitorDeclineCooldownTimer = null;
 let visitorNavigationActive = false;
 let visitorAutoReturnTimer = null;
 
@@ -1208,9 +1263,7 @@ function resetVisitorGreeting() {
 
 function openVisitorGreeting() {
   if (
-    !visitorGreetingOverlay.classList.contains("hidden") ||
-    visitorDeclineCooldownTimer ||
-    visitorNavigationActive
+    !visitorGreetingOverlay.classList.contains("hidden")
   ) {
     return;
   }
@@ -1231,31 +1284,15 @@ function closeVisitorGreeting() {
   showPage("konten");
 }
 
-function startVisitorDeclineCooldown() {
-  if (visitorDeclineCooldownTimer) {
-    clearTimeout(visitorDeclineCooldownTimer);
-  }
-
-  visitorDeclineCooldownTimer = setTimeout(() => {
-    visitorDeclineCooldownTimer = null;
-    console.log("👋 Cooldown menu sapa selesai");
-  }, VISITOR_DECLINE_COOLDOWN_MS);
-}
-
-function cancelVisitorDeclineCooldown() {
-  if (!visitorDeclineCooldownTimer) return;
-
-  clearTimeout(visitorDeclineCooldownTimer);
-  visitorDeclineCooldownTimer = null;
-  console.log("👋 Cooldown menu sapa dibatalkan karena wajah tidak terdeteksi");
-}
-
 function startVisitorNavigation(waypoint, stage, title, message) {
   // clear any pending auto-return when a new navigation starts
   if (visitorAutoReturnTimer) {
     clearTimeout(visitorAutoReturnTimer);
     visitorAutoReturnTimer = null;
   }
+
+  // Visitor navigation temporarily owns the waypoint status events.
+  stopNavigationLoop();
 
   if (!sendWaypointToROS(waypoint)) return;
 
@@ -1310,12 +1347,11 @@ function handleVisitorNavigationArrival() {
 }
 
 function handleVisitorFaceDetection() {
-  if (currentPage !== "konten" || visitorNavigationActive) return;
+  if (currentPage !== "konten") return;
 
   if (visitorFaceDetected) {
     openVisitorGreeting();
   } else {
-    cancelVisitorDeclineCooldown();
     if (!visitorGreetingOverlay.classList.contains("hidden")) {
       closeVisitorGreeting();
     }
@@ -1347,7 +1383,6 @@ visitorReturnPickupBtn.addEventListener("click", () => {
 });
 
 visitorDeclineBtn.addEventListener("click", () => {
-  startVisitorDeclineCooldown();
   closeVisitorGreeting();
 });
 
