@@ -1178,7 +1178,7 @@ const visitorGreetingAudio = new Audio("assets/sayaraisa.mp3");
 visitorGreetingAudio.preload = "auto";
 
 const VISITOR_INITIAL_MESSAGE =
-  "Halo! Saya Robot asisten RAISA siap membantu. Apakah Anda ingin saya antar ke lokasi PT Optima Group?";
+  "Halo! Saya Robot asisten RAISA siap membantu. Apakah Anda ingin saya antar ke lokasi PT. Performa Optima Group?";
 const VISITOR_TAP_TARGET = 10;
 const VISITOR_TAP_WINDOW_MS = 3000;
 const VISITOR_ARRIVAL_GUARD_MS = 1000;
@@ -1190,6 +1190,7 @@ let visitorTapCount = 0;
 let visitorTapTimer = null;
 let visitorDeclineCooldownTimer = null;
 let visitorNavigationActive = false;
+let visitorAutoReturnTimer = null;
 
 function setVisitorActionGroup(activeGroup) {
   [visitorInitialActions, visitorArrivalActions, visitorNavigationActions].forEach(
@@ -1250,6 +1251,12 @@ function cancelVisitorDeclineCooldown() {
 }
 
 function startVisitorNavigation(waypoint, stage, title, message) {
+  // clear any pending auto-return when a new navigation starts
+  if (visitorAutoReturnTimer) {
+    clearTimeout(visitorAutoReturnTimer);
+    visitorAutoReturnTimer = null;
+  }
+
   if (!sendWaypointToROS(waypoint)) return;
 
   visitorNavigationActive = true;
@@ -1275,6 +1282,24 @@ function handleVisitorNavigationArrival() {
     visitorGreetingTitle.textContent = "Tujuan tercapai";
     visitorGreetingMessage.textContent = "Robot sudah sampai di titik antar.";
     setVisitorActionGroup(visitorArrivalActions);
+    // schedule automatic return to pickup after 5 seconds
+    if (visitorAutoReturnTimer) clearTimeout(visitorAutoReturnTimer);
+    visitorAutoReturnTimer = setTimeout(() => {
+      // only trigger if still at-dropoff and no navigation active
+      if (visitorJourneyStage === "at-dropoff" && !visitorNavigationActive) {
+        console.log("⏱️ Auto-return: mengirim titikjemput setelah tiba di titik antar");
+        // reuse startVisitorNavigation to set states
+        if (sendWaypointToROS("titikjemput")) {
+          visitorNavigationActive = true;
+          visitorJourneyStage = "to-pickup";
+          visitorNavigationStartedAt = Date.now();
+          visitorGreetingTitle.textContent = "Kembali ke Titik Jemput";
+          visitorGreetingMessage.textContent = "Robot sedang kembali menuju titik jemput.";
+          setVisitorActionGroup(visitorNavigationActions);
+        }
+      }
+      visitorAutoReturnTimer = null;
+    }, 5000);
     return;
   }
 
@@ -1307,6 +1332,12 @@ visitorGuideBtn.addEventListener("click", () => {
 });
 
 visitorReturnPickupBtn.addEventListener("click", () => {
+  // user-triggered return should cancel auto-return timer
+  if (visitorAutoReturnTimer) {
+    clearTimeout(visitorAutoReturnTimer);
+    visitorAutoReturnTimer = null;
+  }
+
   startVisitorNavigation(
     "titikjemput",
     "to-pickup",
