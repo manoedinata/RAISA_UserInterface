@@ -1535,6 +1535,7 @@ const handPlaylist = [
 
 const videoTanganBtn = document.getElementById("video-tangan-btn");
 videoTanganBtn.addEventListener("click", () => {
+  devOverlay.classList.add("hidden");
   openHandVideoPlaylist();
 });
 
