@@ -991,6 +991,20 @@ document
     devOverlay.classList.add("hidden");
   });
 
+document.getElementById("dev-open-pameran")?.addEventListener("click", () => {
+  devOverlay.classList.add("hidden");
+
+  console.log("🚀 Launching Chrome Kiosk for Mode Pameran...");
+
+  const chromeCmd = `DISPLAY=:0 google-chrome --kiosk --password-store=basic --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --disable-pinch --overscroll-history-navigation=0 --disk-cache-dir=/dev/null --disable-translate --disable-features=Translate --window-position=1920,1200 "http://localhost:8090"`;
+
+  exec(chromeCmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`❌ Failed to launch Chrome: ${error.message}`);
+    }
+  });
+});
+
 // =============================================================================
 // 🛠 DEV MODE WEBVIEW INPUT
 // =============================================================================
