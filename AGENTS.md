@@ -13,6 +13,8 @@
 ## Exhibition display
 
 - `pameran.html` is UI-only and is not connected to ROS or WebSocket.
+- `POST /api/pameran/spawn` in `main.js` launches the external Chrome kiosk for Mode Pameran at `http://localhost:8090`.
+- The renderer (`app.js`) auto-triggers `POST /api/pameran/spawn` as a simple lock screen after `PAMERAN_IDLE_TIMEOUT_MS` (default 60s) of no interaction on the main UI. Any `pointerdown`/`keydown`/`touchstart`/`wheel` resets the idle timer, and the launch is deferred while fullscreen content (viewer overlay) is active.
 - It cycles through four demo icon/text states every five seconds with animated transitions and reduced-motion support.
 - Keep future remote display-state handling separate from the visual transition functions until WebSocket behavior is implemented.
 

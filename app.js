@@ -991,18 +991,30 @@ document
     devOverlay.classList.add("hidden");
   });
 
-document.getElementById("dev-open-pameran")?.addEventListener("click", () => {
+document.getElementById("dev-open-pameran")?.addEventListener("click", async () => {
   devOverlay.classList.add("hidden");
 
-  console.log("🚀 Launching Chrome Kiosk for Mode Pameran...");
+  console.log("🚀 Requesting Mode Pameran kiosk launch...");
 
-  const chromeCmd = `DISPLAY=:0 google-chrome --kiosk --password-store=basic --use-fake-ui-for-media-stream --autoplay-policy=no-user-gesture-required --disable-pinch --overscroll-history-navigation=0 --disk-cache-dir=/dev/null --disable-translate --disable-features=Translate --window-position=1920,1200 "http://localhost:8090"`;
+  try {
+    const response = await fetch("http://localhost:9999/api/pameran/spawn", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-  exec(chromeCmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Failed to launch Chrome: ${error.message}`);
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Gagal memulai Mode Pameran");
     }
-  });
+
+    console.log("✅ Mode Pameran kiosk requested", data);
+  } catch (error) {
+    console.error(`❌ Failed to launch Chrome kiosk: ${error.message}`);
+    alert("Gagal memulai Mode Pameran. Cek console untuk detail.");
+  }
 });
 
 // =============================================================================
@@ -1684,6 +1696,72 @@ const sapapengunjungBtn = document.getElementById("sapapengunjung-btn");
 // update periodically
 setTimeout(updateWifiStatusUI, 800);
 setInterval(updateWifiStatusUI, 10000);
+
+// =============================================================================
+// 🔒 IDLE LOCK SCREEN → MODE PAMERAN
+// =============================================================================
+// Ketika tidak ada interaksi pada UI utama (menu Konten/Informasi/Interaksi)
+// selama PAMERAN_IDLE_TIMEOUT_MS, luncurkan Mode Pameran sebagai "lock screen".
+
+const PAMERAN_IDLE_TIMEOUT_MS = 60000; // 60 detik tanpa interaksi
+let pameranIdleTimer = null;
+let pameranLaunched = false;
+
+// Jangan ambil alih layar saat konten fullscreen sedang aktif (video/kamera).
+function isFullscreenContentActive() {
+  return (
+    viewerOverlay && !viewerOverlay.classList.contains("hidden")
+  );
+}
+
+function launchPameranLockScreen() {
+  // Konten fullscreen sedang tampil, jangan diinterupsi. Cek lagi nanti.
+  if (isFullscreenContentActive()) {
+    schedulePameranIdleTimer();
+    return;
+  }
+
+  if (pameranLaunched) return;
+  pameranLaunched = true;
+
+  console.log("🔒 Idle terdeteksi, meluncurkan Mode Pameran (lock screen)...");
+
+  fetch("http://localhost:9999/api/pameran/spawn", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((response) =>
+      response.json().then((data) => ({ ok: response.ok, data }))
+    )
+    .then(({ ok, data }) => {
+      if (!ok || !data.success) {
+        throw new Error(data.error || "Gagal memulai Mode Pameran");
+      }
+      console.log("✅ Mode Pameran (lock screen) aktif", data);
+    })
+    .catch((error) => {
+      console.error(`❌ Gagal meluncurkan Mode Pameran: ${error.message}`);
+      pameranLaunched = false; // izinkan percobaan ulang saat idle berikutnya
+    });
+}
+
+function schedulePameranIdleTimer() {
+  if (pameranIdleTimer) clearTimeout(pameranIdleTimer);
+  pameranIdleTimer = setTimeout(launchPameranLockScreen, PAMERAN_IDLE_TIMEOUT_MS);
+}
+
+function resetPameranIdleTimer() {
+  pameranLaunched = false;
+  schedulePameranIdleTimer();
+}
+
+["pointerdown", "keydown", "touchstart", "wheel"].forEach((evt) =>
+  document.addEventListener(evt, resetPameranIdleTimer, { passive: true })
+);
+
+// Mulai penghitung idle saat UI pertama kali dimuat.
+schedulePameranIdleTimer();
+
 // =============================================================================
 // ✅ STATUS LOG
 // =============================================================================
