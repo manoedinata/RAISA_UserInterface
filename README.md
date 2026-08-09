@@ -22,11 +22,9 @@ Menu Navigasi tetap tersedia untuk memilih waypoint secara manual, tetapi loop o
 
 ## Lock Screen Idle (Mode Pameran)
 
-Idle timer hanya aktif di menu **Konten**. Ketika berada di menu Konten dan tidak ada interaksi selama ambang waktu, aplikasi otomatis meluncurkan Mode Pameran sebagai "lock screen" sederhana melalui `POST /api/pameran/spawn`. Berpindah ke menu Informasi atau Interaksi menonaktifkan timer, dan kembali ke Konten mengaktifkannya lagi.
+Ketika tidak ada interaksi pada UI utama (menu Konten, Informasi, dan Interaksi) selama 60 detik, aplikasi otomatis meluncurkan Mode Pameran sebagai "lock screen" sederhana melalui `POST /api/pameran/spawn`.
 
-Interaksi apa pun (`pointerdown`, `keydown`, `touchstart`, atau `wheel`) saat di menu Konten mereset penghitung idle. Peluncuran ditunda selama konten fullscreen (video promo atau kamera) sedang ditampilkan agar tidak menginterupsi pemutaran. Ambang waktu diatur oleh konstanta `PAMERAN_IDLE_TIMEOUT_MS` di `app.js`.
-
-Saat kiosk Mode Pameran aktif, interaksi tidak sampai ke UI utama. Karena itu `POST /kill-chrome` mengirim IPC `chrome-killed` ke renderer sehingga penghitung idle aktif kembali begitu kiosk ditutup.
+Interaksi apa pun (`pointerdown`, `keydown`, `touchstart`, atau `wheel`) mereset penghitung idle. Peluncuran ditunda selama konten fullscreen (video promo atau kamera) sedang ditampilkan agar tidak menginterupsi pemutaran. Ambang waktu diatur oleh konstanta `PAMERAN_IDLE_TIMEOUT_MS` di `app.js`.
 
 ## API Lokal
 

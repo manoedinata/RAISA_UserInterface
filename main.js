@@ -217,11 +217,6 @@ const localApiServer = http.createServer(async (req, res) => {
 
     // Command to forcefully kill Google Chrome
     exec('pkill chrome || killall google-chrome', (err) => {
-      // Chrome (termasuk kiosk Mode Pameran) sudah ditutup, jadi UI utama
-      // kembali aktif. Beri tahu renderer agar timer lock screen dimulai lagi.
-      if (mainWindow && !mainWindow.isDestroyed() && rendererReady) {
-        mainWindow.webContents.send("chrome-killed");
-      }
       res.writeHead(200);
       res.end('Chrome terminated');
     });
