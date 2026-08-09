@@ -1682,6 +1682,22 @@ webview {
   z-index: 99999;
 }
 
+/* Fade hitam fullscreen sebelum meluncurkan kiosk Mode Pameran */
+#pameran-fade {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999999;
+  transition: opacity 0.6s ease;
+}
+
+#pameran-fade.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
 .touch-ripple {
   position: absolute;
   width: 40px;

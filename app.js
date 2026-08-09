@@ -44,6 +44,11 @@ function showPage(targetId) {
     btn.classList.toggle("active", btn.dataset.page === targetId)
   );
   currentPage = targetId;
+
+  // Idle lock screen hanya aktif di menu Konten.
+  if (typeof syncPameranIdleTimer === "function") {
+    syncPameranIdleTimer();
+  }
 }
 
 navButtons.forEach((btn) =>
@@ -762,6 +767,18 @@ function playMusic(filePath, li) {
   saveLastMusicPath(filePath);
   console.log(`🎧 Playing ${filePath}`);
 }
+
+ipcRenderer.on("chrome-killed", () => {
+  // Kiosk (mis. Mode Pameran) ditutup, UI utama aktif lagi.
+  // Hilangkan fade hitam dan aktifkan kembali penghitung idle untuk lock screen.
+  console.log("♻️ Chrome ditutup, mengaktifkan kembali timer lock screen...");
+  if (typeof hidePameranFade === "function") {
+    hidePameranFade();
+  }
+  if (typeof resetPameranIdleTimer === "function") {
+    resetPameranIdleTimer();
+  }
+});
 
 ipcRenderer.on("music-api-play", (_, musicName) => {
   const filePath = findMusicByName(musicName);
@@ -1648,6 +1665,7 @@ voiceBtn.addEventListener("click", () => {
 
 });
 
+/*
 const voice2Btn = document.getElementById("voice2-btn");
 
 voice2Btn.addEventListener("click", () => {
@@ -1673,6 +1691,7 @@ voice2Btn.addEventListener("click", () => {
     }
   });
 });
+*/
 
 // voiceBtn.addEventListener("click", () => {
 //   const topic = safeTopic("/ui/mute_audio", "std_msgs/Int8");
@@ -1700,12 +1719,18 @@ setInterval(updateWifiStatusUI, 10000);
 // =============================================================================
 // 🔒 IDLE LOCK SCREEN → MODE PAMERAN
 // =============================================================================
-// Ketika tidak ada interaksi pada UI utama (menu Konten/Informasi/Interaksi)
-// selama PAMERAN_IDLE_TIMEOUT_MS, luncurkan Mode Pameran sebagai "lock screen".
+// Idle timer hanya berjalan di menu Konten. Ketika tidak ada interaksi selama
+// PAMERAN_IDLE_TIMEOUT_MS, luncurkan Mode Pameran sebagai "lock screen".
+// Di menu lain (Informasi/Interaksi) timer dinonaktifkan.
 
-const PAMERAN_IDLE_TIMEOUT_MS = 60000; // 60 detik tanpa interaksi
+const PAMERAN_IDLE_TIMEOUT_MS = 15000; // 15 detik tanpa interaksi
+const PAMERAN_IDLE_PAGE = "konten";
 let pameranIdleTimer = null;
 let pameranLaunched = false;
+
+function isPameranIdlePage() {
+  return currentPage === PAMERAN_IDLE_PAGE;
+}
 
 // Jangan ambil alih layar saat konten fullscreen sedang aktif (video/kamera).
 function isFullscreenContentActive() {
@@ -1714,19 +1739,21 @@ function isFullscreenContentActive() {
   );
 }
 
-function launchPameranLockScreen() {
-  // Konten fullscreen sedang tampil, jangan diinterupsi. Cek lagi nanti.
-  if (isFullscreenContentActive()) {
-    schedulePameranIdleTimer();
-    return;
-  }
+// Durasi fade hitam sebelum kiosk benar-benar diluncurkan (samakan dgn CSS).
+const PAMERAN_FADE_MS = 600;
 
-  if (pameranLaunched) return;
-  pameranLaunched = true;
+function showPameranFade() {
+  const fade = document.getElementById("pameran-fade");
+  if (fade) fade.classList.add("active");
+}
 
-  console.log("🔒 Idle terdeteksi, meluncurkan Mode Pameran (lock screen)...");
+function hidePameranFade() {
+  const fade = document.getElementById("pameran-fade");
+  if (fade) fade.classList.remove("active");
+}
 
-  fetch("http://localhost:9999/api/pameran/spawn", {
+function spawnPameranKiosk() {
+  return fetch("http://localhost:9999/api/pameran/spawn", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   })
@@ -1738,15 +1765,55 @@ function launchPameranLockScreen() {
         throw new Error(data.error || "Gagal memulai Mode Pameran");
       }
       console.log("✅ Mode Pameran (lock screen) aktif", data);
-    })
-    .catch((error) => {
-      console.error(`❌ Gagal meluncurkan Mode Pameran: ${error.message}`);
-      pameranLaunched = false; // izinkan percobaan ulang saat idle berikutnya
     });
 }
 
+function launchPameranLockScreen() {
+  console.log("⏳ Idle timer expired, checking for fullscreen content...");
+
+  // Konten fullscreen sedang tampil, jangan diinterupsi. Cek lagi nanti.
+  if (isFullscreenContentActive()) {
+    schedulePameranIdleTimer();
+    return;
+  }
+
+  console.log("⏳ Idle timer expired, launching Mode Pameran (lock screen)...");
+
+  if (pameranLaunched) return;
+  pameranLaunched = true;
+
+  console.log("🔒 Idle terdeteksi, meluncurkan Mode Pameran (lock screen)...");
+
+  // Fade hitam dulu ke seluruh layar, baru luncurkan kiosk.
+  showPameranFade();
+
+  setTimeout(() => {
+    spawnPameranKiosk()
+      .catch((error) => {
+        console.error(`❌ Gagal meluncurkan Mode Pameran: ${error.message}`);
+        pameranLaunched = false; // izinkan percobaan ulang saat idle berikutnya
+        hidePameranFade();
+      });
+  }, PAMERAN_FADE_MS);
+}
+
+function clearPameranIdleTimer() {
+  if (pameranIdleTimer) {
+    clearTimeout(pameranIdleTimer);
+    pameranIdleTimer = null;
+  }
+}
+
 function schedulePameranIdleTimer() {
-  if (pameranIdleTimer) clearTimeout(pameranIdleTimer);
+  // Timer hanya berjalan di menu Konten.
+  if (!isPameranIdlePage()) {
+    clearPameranIdleTimer();
+    return;
+  }
+
+  console.log("⏳ Menjadwalkan idle timer untuk Mode Pameran...");
+
+  clearPameranIdleTimer();
   pameranIdleTimer = setTimeout(launchPameranLockScreen, PAMERAN_IDLE_TIMEOUT_MS);
 }
 
@@ -1755,12 +1822,26 @@ function resetPameranIdleTimer() {
   schedulePameranIdleTimer();
 }
 
+// Nyalakan/matikan timer sesuai halaman aktif.
+function syncPameranIdleTimer() {
+  if (isPameranIdlePage()) {
+    resetPameranIdleTimer();
+  } else {
+    clearPameranIdleTimer();
+  }
+}
+
 ["pointerdown", "keydown", "touchstart", "wheel"].forEach((evt) =>
-  document.addEventListener(evt, resetPameranIdleTimer, { passive: true })
+  document.addEventListener(evt, () => {
+    // Reset hanya saat berada di menu Konten; menu lain tidak memicu lock screen.
+    if (isPameranIdlePage()) {
+      resetPameranIdleTimer();
+    }
+  }, { passive: true })
 );
 
-// Mulai penghitung idle saat UI pertama kali dimuat.
-schedulePameranIdleTimer();
+// Mulai penghitung idle saat UI pertama kali dimuat (default halaman Konten).
+syncPameranIdleTimer();
 
 // =============================================================================
 // ✅ STATUS LOG
