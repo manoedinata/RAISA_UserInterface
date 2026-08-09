@@ -20,15 +20,9 @@ Status kedatangan dibaca dari `/communication/nav_status` (`std_msgs/Int8`). Nil
 
 Menu Navigasi tetap tersedia untuk memilih waypoint secara manual, tetapi loop otomatis hanya dikendalikan oleh buka/tutup video promo.
 
-## Lock Screen Idle (Mode Pameran)
+## API Musik Lokal
 
-Ketika tidak ada interaksi pada UI utama (menu Konten, Informasi, dan Interaksi) selama 60 detik, aplikasi otomatis meluncurkan Mode Pameran sebagai "lock screen" sederhana melalui `POST /api/pameran/spawn`.
-
-Interaksi apa pun (`pointerdown`, `keydown`, `touchstart`, atau `wheel`) mereset penghitung idle. Peluncuran ditunda selama konten fullscreen (video promo atau kamera) sedang ditampilkan agar tidak menginterupsi pemutaran. Ambang waktu diatur oleh konstanta `PAMERAN_IDLE_TIMEOUT_MS` di `app.js`.
-
-## API Lokal
-
-Proses Electron (`main.js`) menjalankan server HTTP lokal di `http://localhost:9999` untuk mengendalikan pemutaran musik latar dan memulai Mode Pameran. Server hanya mendengarkan di `localhost` sehingga tidak terekspos ke jaringan.
+Proses Electron (`main.js`) menjalankan server HTTP lokal di `http://localhost:9999` untuk mengendalikan pemutaran musik latar. Server hanya mendengarkan di `localhost` sehingga tidak terekspos ke jaringan.
 
 Daftar musik didefinisikan sekali di `music.js` dan dipakai bersama oleh menu UI (`renderMusicList`) dan API, sehingga nama yang diterima API sama persis dengan yang ditampilkan di daftar musik.
 
@@ -47,14 +41,6 @@ Daftar musik didefinisikan sekali di `music.js` dan dipakai bersama oleh menu UI
   ```
 
   Respons: `202` dengan `{ "success": true, "name": "Hymne-ITS" }` bila diterima, `400` bila nama tidak valid (menyertakan daftar `music`), atau `503` bila renderer belum siap.
-
-- `POST /api/pameran/spawn` memulai Chrome kiosk untuk Mode Pameran pada URL `http://localhost:8090`.
-
-  ```bash
-  curl -X POST http://localhost:9999/api/pameran/spawn
-  ```
-
-  Respons: `202` dengan `{ "success": true, "message": "Mode Pameran kiosk launched", "url": "http://localhost:8090" }` bila proses peluncuran diterima.
 
 ## Berkas utama
 

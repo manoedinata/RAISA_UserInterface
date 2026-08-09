@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 const http = require('http');
-const { exec, spawn } = require("child_process");
+const { exec } = require("child_process");
 const { MUSIC_LIST, findMusicByName, getMusicName } = require("./music");
 
 const IP_FILE = "/home/raisa/ip_controller.txt";
@@ -120,39 +120,6 @@ function readJsonBody(req) {
   });
 }
 
-function launchModePameranKiosk() {
-  const chromeBinary = process.env.CHROME_BIN || "google-chrome";
-  const chromeArgs = [
-    "--kiosk",
-    "--password-store=basic",
-    "--use-fake-ui-for-media-stream",
-    "--autoplay-policy=no-user-gesture-required",
-    "--disable-pinch",
-    "--overscroll-history-navigation=0",
-    "--disk-cache-dir=/dev/null",
-    "--disable-translate",
-    "--disable-features=Translate",
-    "--window-position=1920,1200",
-    "http://localhost:8090",
-  ];
-
-  const child = spawn(chromeBinary, chromeArgs, {
-    detached: true,
-    stdio: "ignore",
-    env: {
-      ...process.env,
-      DISPLAY: process.env.DISPLAY || ":0",
-    },
-  });
-
-  child.once("error", (error) => {
-    console.error(`❌ Failed to launch Chrome kiosk: ${error.message}`);
-  });
-
-  child.unref();
-  return child;
-}
-
 // Local HTTP API inside Electron
 const localApiServer = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -198,20 +165,6 @@ const localApiServer = http.createServer(async (req, res) => {
     return;
   }
 
-  if (requestUrl.pathname === '/api/pameran/spawn' && req.method === 'POST') {
-    try {
-      launchModePameranKiosk();
-      sendJson(res, 202, {
-        success: true,
-        message: "Mode Pameran kiosk launched",
-        url: "http://localhost:8090",
-      });
-    } catch (error) {
-      sendJson(res, 500, { success: false, error: error.message });
-    }
-    return;
-  }
-
   if (req.url === '/kill-chrome' && req.method === 'POST') {
     console.log("🛑 Received command to close Chrome. Terminating...");
 
@@ -226,8 +179,8 @@ const localApiServer = http.createServer(async (req, res) => {
   }
 });
 
-localApiServer.listen(LOCAL_API_PORT, '0.0.0.0', () => {
-  console.log(`🎧 Local API listening on http://0.0.0.0:${LOCAL_API_PORT}`);
+localApiServer.listen(LOCAL_API_PORT, 'localhost', () => {
+  console.log(`🎧 Local API listening on http://localhost:${LOCAL_API_PORT}`);
 });
 
 app.whenReady().then(() => {
